@@ -1,0 +1,87 @@
+# Scala IDE specific (Scala & Java development for Eclipse)
+.cache-main
+.scala_dependencies
+.worksheet
+
+### Eclipse Patch ###
+# Eclipse Core
+.project
+
+# JDT-specific (Eclipse Java Development Tools)
+.classpath
+
+# Annotation Processing
+.apt_generated
+
+.sts4-cache/
+
+### Intellij ###
+.idea 
+
+# mpeltonen/sbt-idea plugin
+.idea_modules/
+
+
+### OSX ###
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon must end with two \r
+Icon
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+### PlayFramework ###
+# Ignore Play! working directory #
+/db
+.eclipse
+/lib/
+/logs/
+/modules
+/project/project
+/project/target
+/target
+test-result
+server.pid
+*.eml
+/dist/
+.cache
+
+### SBT ###
+# Simple Build Tool
+# http://www.scala-sbt.org/release/docs/Getting-Started/Directories.html#configuring-version-control
+
+dist/*
+target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+.history
+.lib/
+
+### Scala ###
+*.class
+*.log
+
+# adapted from https://www.gitignore.io/api/playframework,sbt,eclipse,intellij,scala,osx
+
