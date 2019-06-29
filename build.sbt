@@ -22,3 +22,5 @@ libraryDependencies ++= Seq(
 
 
 libraryDependencies += "org.typelevel" %% "cats-core" % "1.6.0"
+// https://mvnrepository.com/artifact/net.liftweb/lift-json
+libraryDependencies += "net.liftweb" %% "lift-json" % "3.1.1"
