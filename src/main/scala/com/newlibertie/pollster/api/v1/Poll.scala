@@ -31,7 +31,11 @@ object Poll {
         } ~
         post {
           entity(as[String]) {
-            pollDefinition => complete(s"received ${pollDefinition}")
+            pollDefinition => {
+              val poll = com.newlibertie.pollster.impl.Poll(pollDefinition)
+              com.newlibertie.pollster.impl.Poll.write()
+              complete(s"received ${pollDefinition}")
+            }
           }
         } ~
         put {

@@ -20,6 +20,15 @@ object Poll {
         pollDetails)
     )
   }
+
+  // TODO :
+  def write() = {
+
+  }
+
+  def read() = {
+
+  }
 }
 
 case class PollParams(
