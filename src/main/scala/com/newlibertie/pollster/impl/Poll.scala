@@ -1,6 +1,8 @@
 package com.newlibertie.pollster.impl
 
 import java.math.BigInteger
+import java.util.Date
+
 import net.liftweb.json._
 
 object Poll {
@@ -31,18 +33,33 @@ object Poll {
   }
 }
 
-case class PollParams(
+case class PollDetails(
+                        id:String,
+                        title:String,
+                        tags:List[String],
+                        creator_id:String,
+                        opening_ts:Date,
+                        closing_ts:Date,
+                        creation_ts:Date,
+                        last_modification_ts:Date,
+                        poll_type:String,
+                        poll_spec:String,
+                      )
+
+case class PollParams  (
                        p:BigInteger,        // large prime
                        g:BigInteger,        //  generator
                        s:BigInteger,        //  secret key
                        pollDetails:String   // jsom string, title,
                      )
 {
+  val h =  g.modPow(s, p)           // public key
   implicit val formats = DefaultFormats
   val jValue = parse(pollDetails)
+  val pollSpec = jValue.extract[PollDetails]
 }
 
-class Poll(params:PollParams) {
-
+class Poll(_params:PollParams) {
+  val params = _params
 
 }

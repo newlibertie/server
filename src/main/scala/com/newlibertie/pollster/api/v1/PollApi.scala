@@ -3,8 +3,9 @@ package com.newlibertie.pollster.api.v1
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
+import com.newlibertie.pollster.impl.Poll
 
-object Poll {
+object PollApi {
 
 
   /**
@@ -29,11 +30,11 @@ object Poll {
             )
           }
         } ~
-        post {
+        post {                    // Create a Poll
           entity(as[String]) {
             pollDefinition => {
-              val poll = com.newlibertie.pollster.impl.Poll(pollDefinition)
-              com.newlibertie.pollster.impl.Poll.write()
+              val poll = Poll(pollDefinition)
+              Poll.write()
               complete(s"received ${pollDefinition}")
             }
           }

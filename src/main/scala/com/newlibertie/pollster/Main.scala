@@ -16,7 +16,7 @@ object Main extends App {
   println("starting pollster service ")
   val routes = {
     pathPrefix("v1") {
-      v1.Ballot.routes ~ v1.Poll.routes ~ v1.Disqualification.routes
+      v1.Ballot.routes ~ v1.PollApi.routes ~ v1.Disqualification.routes
     }
   }
 
