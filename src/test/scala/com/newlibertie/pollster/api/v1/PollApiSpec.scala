@@ -9,7 +9,19 @@ class PollApiSpec  extends WordSpec with Matchers with ScalatestRouteTest {
   "The service" should {
 
     "support poll create  " in {
-      Post("/poll") ~> Route.seal(PollApi.routes) ~> check {
+      Post("/poll").withEntity(
+        """
+          |{
+          |  "title":"abacadabra",
+          |  "tags":["abacadabra", "abacadabra2"],
+          |  "creator_id":"abacadabra",
+          |  "opening_ts": "2019-07-01T02:51:00Z" ,
+          |  "closing_ts": "2019-07-01T02:51:00Z" ,
+          |  "poll_type":"abacadabra",
+          |  "poll_spec":"abacadabra"
+          |}
+          |
+        """.stripMargin) ~> Route.seal(PollApi.routes) ~> check {
         status shouldEqual StatusCodes.OK
       }
     }
