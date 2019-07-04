@@ -2,6 +2,7 @@ package com.newlibertie.pollster.impl
 
 import java.math.BigInteger
 
+import com.newlibertie.pollster.DataAdapter
 import net.liftweb.json._
 
 object Poll {
@@ -28,9 +29,8 @@ object Poll {
     new Poll(pollParameters, cryptographicParameters)
   }
 
-  // TODO :
   def write(poll: Poll) = {
-
+    DataAdapter.createPoll(poll)
   }
 
   def read() = {

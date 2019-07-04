@@ -17,12 +17,14 @@ class PollApiSpec  extends WordSpec with Matchers with ScalatestRouteTest {
           |  "creator_id":"abacadabra",
           |  "opening_ts": "2019-07-01T02:51:00Z" ,
           |  "closing_ts": "2019-07-01T02:51:00Z" ,
-          |  "poll_type":"abacadabra",
+          |  "poll_type":"SIMPLE",
           |  "poll_spec":"abacadabra"
           |}
           |
         """.stripMargin) ~> Route.seal(PollApi.routes) ~> check {
         status shouldEqual StatusCodes.OK
+        entityAs[String].indexOf("id") shouldBe 2   // TODO Can json parse
+        // TODO : contentType should ===(ContentTypes.`application/json`)
       }
     }
 

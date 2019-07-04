@@ -34,8 +34,8 @@ object PollApi {
           entity(as[String]) {
             pollDefinition => {
               val poll = Poll(pollDefinition)
-              Poll.write(poll)
-              complete(s"received ${pollDefinition}")
+              val id = Poll.write(poll)
+              complete(s"""{"id":"${id}"}""")
             }
           }
         } ~

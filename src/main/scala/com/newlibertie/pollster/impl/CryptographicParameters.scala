@@ -17,12 +17,12 @@ object CryptographicParameters {
 
 case class CryptographicParameters
 (
-  p:BigInteger = CryptographicParameters.probablePrime(),       // large prime
-  g:BigInteger = CryptographicParameters.random(),              //  generator
-  s:BigInteger = CryptographicParameters.random()               //  secret key
+  large_prime_p:BigInteger = CryptographicParameters.probablePrime(),
+  generator_g:BigInteger = CryptographicParameters.random(),
+  private_key_s:BigInteger = CryptographicParameters.random()
 )
 {
-  val h = g.modPow(s, p)
+  val public_key_h = generator_g.modPow(private_key_s, large_prime_p)
 }
 
 
