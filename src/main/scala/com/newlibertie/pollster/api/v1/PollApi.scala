@@ -34,8 +34,11 @@ object PollApi {
           entity(as[String]) {
             pollDefinition => {
               val poll = Poll(pollDefinition)
-              val id = Poll.write(poll)
-              complete(s"""{"id":"${id}"}""")
+              Poll.write(poll) match {
+                case Some(id) => complete(s"""{"id":"${id}"}""")
+                case _ => complete(s"""{"id":""}""") //TODO : send 4XX
+              }
+
             }
           }
         } ~
