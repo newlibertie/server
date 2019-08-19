@@ -1,6 +1,8 @@
 package com.newlibertie.pollster
 
-import java.sql.{Connection, DriverManager, ResultSet, Statement}
+import java.sql.{Connection, DriverManager, ResultSet, Statement, Timestamp, Types}
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
 
 import com.newlibertie.pollster.impl.Poll
 import com.typesafe.scalalogging.LazyLogging
@@ -13,7 +15,7 @@ object DataAdapter extends LazyLogging {
 
   val cachedConnection:ThreadLocal[Connection] = new ThreadLocal();
 
-  def getConnection() = {
+  def getConnection: Connection = {
     val existingConnection = cachedConnection.get();
     if (existingConnection == null || !existingConnection.isValid(1)) {
       val newConnection = DriverManager.getConnection(url, user, pass);
@@ -49,14 +51,60 @@ object DataAdapter extends LazyLogging {
         |)
       """.stripMargin
     logger.info(query)
-    val statement = getConnection().createStatement
+    val statement = getConnection.createStatement
     val numRows = statement.executeUpdate(query)
     if (numRows != 1) {
       logger.error("failed to insert " + query)
       -1
     }
     else {
+      logger.info("poll.p.id: " + poll.p.id)
       poll.p.id
+    }
+  }
+
+  def getPoll(id: String) = {
+    val query =
+      s"""
+         |SELECT
+         |   id, title, tags, creator_id, opening_ts, closing_ts, creation_ts, poll_type, poll_spec,
+         |   large_prime_p, generator_g, private_key_s
+         | FROM nldb.polls
+         | WHERE id = '$id'
+      """.stripMargin
+    logger.info(query)
+    val statement = getConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)
+    val rs: ResultSet = statement.executeQuery(query)
+    if (!rs.first()) {
+      logger.error("failed to retrieve using: " + query)
+      -1
+    }
+    else {
+      val md = rs.getMetaData
+      val colCount = md.getColumnCount
+      var mutableMap = scala.collection.mutable.Map[String, Any]()
+
+      //val s = new StringBuilder("{")
+
+      for (i <- 1 to colCount) {
+        mutableMap += (md.getColumnName(i) -> rs.getObject(i))
+        /*
+                  s ++= "\"" + md.getColumnName(i) + "\":";
+                  val sf = md.getColumnType(i) match {
+                    case Types.VARCHAR => "\"" + rs.getString(i) + "\"";
+                    case Types.TIMESTAMP => "\"" + rs.getTimestamp(i).formatted("yyyy-MM-dd'T'HH:mm:ss.SSSZ") + "\"";
+                    case Types.INTEGER | Types.DECIMAL | Types.DOUBLE | Types.FLOAT | Types.NUMERIC | Types.REAL | Types.SMALLINT | Types.TINYINT => rs.getDouble(i);
+                    case _ => "\"" + rs.getString(i) + "\"";
+                  }
+        */
+        //s.append(sf);
+      }
+      //s.toString()
+      val mapper = new ObjectMapper()
+      mapper.registerModule(DefaultScalaModule)
+      val str = mapper.writeValueAsString(mutableMap)
+      logger.info(str)
+      str
     }
   }
 }
