@@ -84,22 +84,10 @@ object DataAdapter extends LazyLogging {
       val colCount = md.getColumnCount
       var mutableMap = scala.collection.mutable.Map[String, Any]()
 
-      //val s = new StringBuilder("{")
-
       for (i <- 1 to colCount) {
         mutableMap += (md.getColumnName(i) -> rs.getObject(i))
-        /*
-                  s ++= "\"" + md.getColumnName(i) + "\":";
-                  val sf = md.getColumnType(i) match {
-                    case Types.VARCHAR => "\"" + rs.getString(i) + "\"";
-                    case Types.TIMESTAMP => "\"" + rs.getTimestamp(i).formatted("yyyy-MM-dd'T'HH:mm:ss.SSSZ") + "\"";
-                    case Types.INTEGER | Types.DECIMAL | Types.DOUBLE | Types.FLOAT | Types.NUMERIC | Types.REAL | Types.SMALLINT | Types.TINYINT => rs.getDouble(i);
-                    case _ => "\"" + rs.getString(i) + "\"";
-                  }
-        */
-        //s.append(sf);
       }
-      //s.toString()
+
       val mapper = new ObjectMapper()
       mapper.registerModule(DefaultScalaModule)
       val str = mapper.writeValueAsString(mutableMap)

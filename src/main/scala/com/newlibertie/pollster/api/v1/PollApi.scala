@@ -40,53 +40,55 @@ object PollApi {
           Poll.write(poll) match {
             case Some(id) => complete(StatusCodes.OK, List(`Content-Type`(`text/plain(UTF-8)`)), "id")
             case _ => complete(StatusCodes.NotFound)
+              }
+
+            }
+          }
+        } ~
+        put {
+          parameters("id") { (id: String) =>
+            complete(
+              HttpEntity(
+                ContentTypes.`application/json`,
+                "{}"
+              )
+            )
+          }
+        } ~
+        delete {
+          parameters("id") { (id: String) =>
+            complete(
+              HttpEntity(
+                ContentTypes.`application/json`,
+                "{}"
+              )
+            )
+          }
+        }
+      } ~
+      path( "closePoll") {
+        get {
+          parameters("id") { (id: String) =>
+            complete(
+              HttpEntity(
+                ContentTypes.`application/json`,
+                "{}"
+              )
+            )
+          }
+        }
+      } ~
+      path( "computeResults") {
+        get {
+          parameters("id") { (id: String) =>
+            complete(
+              HttpEntity(
+                ContentTypes.`application/json`,
+                "{}"
+              )
+            )
           }
         }
       }
-    } ~
-    put {
-      parameters("id") { id: String =>
-        complete(
-          HttpEntity(
-            ContentTypes.`application/json`,
-            "{}"
-          )
-        )
-      }
-    } ~
-    delete {
-      parameters("id") { id: String =>
-        complete(
-          HttpEntity(
-            ContentTypes.`application/json`,
-            "{}"
-          )
-        )
-      }
-    } ~
-    path("closePoll") {
-      get {
-        parameters("id") { id: String =>
-          complete(
-            HttpEntity(
-              ContentTypes.`application/json`,
-              "{}"
-            )
-          )
-        }
-      }
-    } ~
-    path("computeResults") {
-      get {
-        parameters("id") { id: String =>
-          complete(
-            HttpEntity(
-              ContentTypes.`application/json`,
-              "{}"
-            )
-          )
-        }
-      }
     }
-  }
 }
