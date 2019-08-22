@@ -10,7 +10,7 @@ object Poll {
   def apply(params: PollParameters): Poll = new Poll(params)
 
   def apply(pollDetails:String): Poll = {
-    implicit val formats: DefaultFormats.type = DefaultFormats
+    implicit val formats = DefaultFormats
     val jValue = parse(pollDetails)
     val pollParameters = jValue.extract[PollParameters]
     val pollJsonMap = jValue.values.asInstanceOf[Map[String, String]]
@@ -33,8 +33,7 @@ object Poll {
     DataAdapter.createPoll(poll)
   }
 
-  def read(id:String) = {
-    DataAdapter.getPoll(id)
+  def read() = {
 
   }
 }
