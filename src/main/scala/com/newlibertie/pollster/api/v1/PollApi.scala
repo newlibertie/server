@@ -41,6 +41,7 @@ object PollApi {
             case Some(id) => complete(StatusCodes.OK, List(`Content-Type`(`text/plain(UTF-8)`)), "id")
             case _ => complete(StatusCodes.NotFound)
               }
+
             }
           }
         } ~
