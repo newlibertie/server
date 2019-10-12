@@ -1,11 +1,14 @@
 package com.newlibertie.pollster
 
-import java.sql.{Connection, DriverManager, ResultSet, Statement, Timestamp, Types}
+import java.sql.{Connection, DriverManager, ResultSet}
+
+import akka.http.scaladsl.model.StatusCodes
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-
 import com.newlibertie.pollster.impl.Poll
 import com.typesafe.scalalogging.LazyLogging
+
+import scala.collection.immutable.Map
 
 object DataAdapter extends LazyLogging {
   val user = System.getProperty("user", "clowdsource");
@@ -95,4 +98,19 @@ object DataAdapter extends LazyLogging {
       str
     }
   }
+  def updatePoll(id: String, map:Map[String, String]): Any = {
+    if ((map isEmpty) || (map equals(Nil)))
+      return StatusCodes.BadRequest
+    val sb  = new StringBuilder("UPDATE nldb.polls SET")
+    for ((k,v) <- map)
+      sb.append(k).append("=").append(v).append(',')
+    sb.deleteCharAt(sb.length()-1).append(s"WHERE id = '$id'")
+    val str = sb.toString()
+    logger.info(str)
+    val statement = getConnection.createStatement()
+    statement.executeUpdate(str)
+  }
+//  def updatePoll(id: String): Any = {
+//      return StatusCodes.BadRequest
+//  }
 }

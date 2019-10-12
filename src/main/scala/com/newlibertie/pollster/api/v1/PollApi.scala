@@ -1,16 +1,15 @@
 package com.newlibertie.pollster.api.v1
 
+import akka.http.scaladsl.model.ContentTypes._
+import akka.http.scaladsl.model.headers.`Content-Type`
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import com.newlibertie.pollster.impl.Poll
 import com.newlibertie.pollster.DataAdapter
-import akka.http.scaladsl.model.ContentTypes._
-import akka.http.scaladsl.model.headers.`Content-Type`
+import com.newlibertie.pollster.impl.Poll
+import net.liftweb.json._
 
 object PollApi {
-
-
   /**
     * Rest api
     * Create a Poll
@@ -41,19 +40,31 @@ object PollApi {
             case Some(id) => complete(StatusCodes.OK, List(`Content-Type`(`text/plain(UTF-8)`)), "id")
             case _ => complete(StatusCodes.NotFound)
               }
-
             }
           }
         } ~
-        put {
-          parameters("id") { (id: String) =>
-            complete(
-              HttpEntity(
-                ContentTypes.`application/json`,
-                "{}"
-              )
-            )
+        put { // update
+          try {
+            entity(as[String]) {
+              pollDefinition => {
+                val jValue = parse(pollDefinition)
+                val pollJsonMap = jValue.values.asInstanceOf[Map[String, String]]
+                val id = pollJsonMap.get("id").get
+                //val id = parsedJson.get("id").asInstanceOf[String]
+                //println(parsedJson)
+
+                //val map = parse(mapStr, true)
+                DataAdapter.updatePoll(id, pollJsonMap) match {
+                  case 1 => complete(StatusCodes.OK)
+                  case _ => complete(StatusCodes.NotFound)
+                }
+              }
+            }
           }
+          catch {
+            case _ => complete(StatusCodes.BadRequest)
+          }
+
         } ~
         delete {
           parameters("id") { (id: String) =>
