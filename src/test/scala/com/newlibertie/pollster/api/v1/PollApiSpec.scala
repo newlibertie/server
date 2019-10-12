@@ -65,11 +65,7 @@ class PollApiSpec extends WordSpec with Matchers with ScalatestRouteTest with La
 
 
     "support poll update  " in {
-      //Put("/poll?id=69437154-dc84-446f-b015-d4147c3f5166") ~> Route.seal(PollApi.routes) ~> check {
-      //  status shouldEqual StatusCodes.NotFound
-      //}
-      //Put("/poll?id=69437154-dc84-446f-b015-d4147c3f5166").withEntity(
-      Put().withEntity(
+      Put("/poll?id=69437154-dc84-446f-b015-d4147c3f5166").withEntity(
         """
           |{
           |  "id":"69437154-dc84-446f-b015-d4147c3f5166",

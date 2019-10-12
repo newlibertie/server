@@ -21,6 +21,11 @@ libraryDependencies ++= Seq(
 )
 
 
+// TODO : The following is an extremely generous inclusion of various libraries
+// with diverse version baselines.  This is bound to create unexpected and unexplainable bugs in
+// the future
+// TODO : Consider cleaning up and minimizing
+
 libraryDependencies += "org.typelevel" %% "cats-core" % "1.6.0"
 // https://mvnrepository.com/artifact/net.liftweb/lift-json
 libraryDependencies += "net.liftweb" %% "lift-json" % "3.1.1"

@@ -5,11 +5,13 @@ import akka.http.scaladsl.model.headers.`Content-Type`
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
+import com.typesafe.scalalogging.LazyLogging
+
 import com.newlibertie.pollster.DataAdapter
 import com.newlibertie.pollster.impl.Poll
 import net.liftweb.json._
 
-object PollApi {
+object PollApi extends LazyLogging {
   /**
     * Rest api
     * Create a Poll
@@ -43,62 +45,63 @@ object PollApi {
             }
           }
         } ~
-        put { // update
+    put { // update
+      entity(as[String]) {
+        pollDefinition => {
           try {
-            entity(as[String]) {
-              pollDefinition => {
-                val jValue = parse(pollDefinition)
-                val pollJsonMap = jValue.values.asInstanceOf[Map[String, String]]
-                val id = pollJsonMap.get("id").get
-                //val id = parsedJson.get("id").asInstanceOf[String]
-                //println(parsedJson)
-
-                //val map = parse(mapStr, true)
-                DataAdapter.updatePoll(id, pollJsonMap) match {
-                  case 1 => complete(StatusCodes.OK)
-                  case _ => complete(StatusCodes.NotFound)
-                }
-              }
+            val jValue = parse(pollDefinition)
+            val pollJsonMap = jValue.values.asInstanceOf[Map[String, String]]
+            val id = pollJsonMap.get("id").get
+            //val id = parsedJson.get("id").asInstanceOf[String]
+            //println(parsedJson)
+            //val map = parse(mapStr, true)
+            DataAdapter.updatePoll(id, pollJsonMap) match {
+              case 1 => complete(StatusCodes.OK)
+              case _ => complete(StatusCodes.NotFound)
             }
           }
           catch {
-            case _ => complete(StatusCodes.BadRequest)
-          }
+            case ex: Exception =>
+              logger.error(s"failed to put the poll definition ${pollDefinition}", ex)
+              complete(StatusCodes.BadRequest)
 
-        } ~
-        delete {
-          parameters("id") { (id: String) =>
-            complete(
-              HttpEntity(
-                ContentTypes.`application/json`,
-                "{}"
-              )
-            )
-          }
-        }
-      } ~
-      path( "closePoll") {
-        get {
-          parameters("id") { (id: String) =>
-            complete(
-              HttpEntity(
-                ContentTypes.`application/json`,
-                "{}"
-              )
-            )
-          }
-        }
-      } ~
-      path( "computeResults") {
-        get {
-          parameters("id") { (id: String) =>
-            complete(
-              HttpEntity(
-                ContentTypes.`application/json`,
-                "{}"
-              )
-            )
           }
         }
       }
+    } ~
+    delete {
+      parameters("id") { (id: String) =>
+        complete(
+          HttpEntity(
+            ContentTypes.`application/json`,
+            "{}"
+          )
+        )
+      }
+    }
+  } ~
+  path( "closePoll") {
+    get {
+      parameters("id") { (id: String) =>
+        complete(
+          HttpEntity(
+            ContentTypes.`application/json`,
+            "{}"
+          )
+        )
+      }
+    }
+  } ~
+  path( "computeResults") {
+    get {
+      parameters("id") { (id: String) =>
+        complete(
+          HttpEntity(
+            ContentTypes.`application/json`,
+            "{}"
+          )
+        )
+      }
+    }
+  }
 }
