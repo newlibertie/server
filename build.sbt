@@ -21,11 +21,6 @@ libraryDependencies ++= Seq(
 )
 
 
-// TODO : The following is an extremely generous inclusion of various libraries
-// with diverse version baselines.  This is bound to create unexpected and unexplainable bugs in
-// the future
-// TODO : Consider cleaning up and minimizing
-
 libraryDependencies += "org.typelevel" %% "cats-core" % "1.6.0"
 // https://mvnrepository.com/artifact/net.liftweb/lift-json
 libraryDependencies += "net.liftweb" %% "lift-json" % "3.1.1"
@@ -47,7 +42,7 @@ libraryDependencies += "com.fasterxml.jackson.module" %% "jackson-module-scala" 
 
 
 // https://mvnrepository.com/artifact/org.slf4j/slf4j-simple
-libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.5.6" % Test
+libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.7.28" % Test
 
 
 libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.0"

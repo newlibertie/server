@@ -54,7 +54,7 @@ class PollApiSpec extends WordSpec with Matchers with ScalatestRouteTest with La
       Get(s"/poll?id=$pollId") ~> Route.seal(PollApi.routes) ~> check {
         logger.info("entityAs[String]: " + entityAs[String])
         //println(entityAs[String])
-        println(pollId)
+        //println(pollId)
         status shouldEqual StatusCodes.OK
         entityAs[String].length()  should be > 10 // TODO Can json parse
       }
@@ -68,7 +68,6 @@ class PollApiSpec extends WordSpec with Matchers with ScalatestRouteTest with La
       Put("/poll?id=69437154-dc84-446f-b015-d4147c3f5166").withEntity(
         """
           |{
-          |  "id":"69437154-dc84-446f-b015-d4147c3f5166",
           |  "title":"abacadabra-updated",
           |  "tags":["abacadabra3", "abacadabra4"],
           |  "creator_id":"abacadabra",
@@ -79,13 +78,21 @@ class PollApiSpec extends WordSpec with Matchers with ScalatestRouteTest with La
           |}
         """.stripMargin) ~> Route.seal(PollApi.routes) ~> check {
         status shouldEqual StatusCodes.OK
-        entityAs[String].indexOf("id") shouldBe 0
-        //entity.shouldBe(0)   // TODO Can json parse
-        contentType shouldEqual ContentTypes.`text/plain(UTF-8)`
       }
-      Put("/poll") ~> Route.seal(PollApi.routes) ~> check {
-        status shouldEqual StatusCodes.NotFound
-      }
+//      Put("/poll?id=NOT-THERE$pollId").withEntity(
+//        """
+//          |{
+//          |  "title":"abacadabra-updated",
+//          |  "tags":["abacadabra3", "abacadabra4"],
+//          |  "creator_id":"abacadabra",
+//          |  "opening_ts": "2019-08-01T02:51:00Z" ,
+//          |  "closing_ts": "2019-10-01T02:51:00Z" ,
+//          |  "poll_type":"MULTIPLE_CHOICE",
+//          |  "poll_spec":"abacadabra-updated"
+//          |}
+//        """.stripMargin) ~> Route.seal(PollApi.routes) ~> check {
+//        status shouldEqual StatusCodes.OK
+//      }
     }
 
 

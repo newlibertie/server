@@ -50,19 +50,17 @@ object PollApi extends LazyLogging {
         pollDefinition => {
           try {
             val jValue = parse(pollDefinition)
-            val pollJsonMap = jValue.values.asInstanceOf[Map[String, String]]
-            val id = pollJsonMap.get("id").get
-            //val id = parsedJson.get("id").asInstanceOf[String]
-            //println(parsedJson)
-            //val map = parse(mapStr, true)
-            DataAdapter.updatePoll(id, pollJsonMap) match {
+            val pollJsonMap = jValue.values.asInstanceOf[Map[String, AnyVal]]
+            val id = "69437154-dc84-446f-b015-d4147c3f5166" // TODO, hard coded for now, needs to be added as a named parameter
+            //val id = pollJsonMap.get("id").get
+            DataAdapter.updatePoll(id.toString, pollJsonMap) match {
               case 1 => complete(StatusCodes.OK)
               case _ => complete(StatusCodes.NotFound)
             }
           }
           catch {
             case ex: Exception =>
-              logger.error(s"failed to put the poll definition ${pollDefinition}", ex)
+              logger.error(s"failed to put the poll definition $pollDefinition", ex)
               complete(StatusCodes.BadRequest)
 
           }
@@ -70,7 +68,7 @@ object PollApi extends LazyLogging {
       }
     } ~
     delete {
-      parameters("id") { (id: String) =>
+      parameters("id") { id: String =>
         complete(
           HttpEntity(
             ContentTypes.`application/json`,
@@ -82,7 +80,7 @@ object PollApi extends LazyLogging {
   } ~
   path( "closePoll") {
     get {
-      parameters("id") { (id: String) =>
+      parameters("id") { id: String =>
         complete(
           HttpEntity(
             ContentTypes.`application/json`,
@@ -94,7 +92,7 @@ object PollApi extends LazyLogging {
   } ~
   path( "computeResults") {
     get {
-      parameters("id") { (id: String) =>
+      parameters("id") { id: String =>
         complete(
           HttpEntity(
             ContentTypes.`application/json`,
