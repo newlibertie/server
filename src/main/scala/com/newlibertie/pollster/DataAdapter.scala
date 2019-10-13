@@ -1,32 +1,30 @@
 package com.newlibertie.pollster
 
-import java.sql.{Connection, DriverManager, ResultSet}
-
 import akka.http.scaladsl.model.StatusCodes
+import java.sql.{Connection, DriverManager, ResultSet, Statement, Timestamp, Types}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
+
 import com.newlibertie.pollster.impl.Poll
 import com.typesafe.scalalogging.LazyLogging
 
-import scala.collection.immutable.Map
-
 object DataAdapter extends LazyLogging {
-  val user: String = System.getProperty("user", "clowdsource")
-  val pass: String = System.getProperty("password", "G00dN3w5")
-  val url: String = System.getProperty( "jdbcurl" ,
-    "jdbc:mysql://localhost/nldb?zeroDateTimeBehavior=convertToNull&serverTimezone=UTC")
+  val user = System.getProperty("user", "clowdsource");
+  val pass = System.getProperty("password", "G00dN3w5") ;
+  val url = System.getProperty( "jdbcurl" ,
+    "jdbc:mysql://localhost/nldb?zeroDateTimeBehavior=convertToNull&serverTimezone=UTC") ;
 
-  val cachedConnection:ThreadLocal[Connection] = new ThreadLocal()
+  val cachedConnection:ThreadLocal[Connection] = new ThreadLocal();
 
   def getConnection: Connection = {
-    val existingConnection = cachedConnection.get()
+    val existingConnection = cachedConnection.get();
     if (existingConnection == null || !existingConnection.isValid(1)) {
-      val newConnection = DriverManager.getConnection(url, user, pass)
-      cachedConnection.set(newConnection)
+      val newConnection = DriverManager.getConnection(url, user, pass);
+      cachedConnection.set(newConnection);
       newConnection
     }
     else {
-      existingConnection
+      existingConnection;
     }
   }
 
