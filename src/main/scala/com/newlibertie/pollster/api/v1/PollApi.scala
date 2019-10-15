@@ -5,11 +5,8 @@ import akka.http.scaladsl.model.headers.`Content-Type`
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import com.typesafe.scalalogging.LazyLogging
-
-import com.newlibertie.pollster.DataAdapter
 import com.newlibertie.pollster.impl.Poll
-import net.liftweb.json._
+import com.typesafe.scalalogging.LazyLogging
 
 object PollApi extends LazyLogging {
   /**
@@ -25,12 +22,9 @@ object PollApi extends LazyLogging {
   lazy val routes: Route = path("poll") {
     get {
       parameters("id") { id: String =>
-        val pollStr = DataAdapter.getPoll(id)
-        pollStr match {
-          case poll: String =>
-            complete(HttpResponse(entity = poll))
+        Poll.read(id) match {
           case -1 => complete(StatusCodes.NotFound)
-          case _ => complete(StatusCodes.BadRequest)
+          case p: Poll => complete(HttpResponse(entity = p.toString))
         }
       }
     } ~
@@ -38,47 +32,48 @@ object PollApi extends LazyLogging {
       entity(as[String]) {
         pollDefinition => {
           val poll = Poll(pollDefinition)
-          Poll.write(poll) match {
+          poll.create match {
             case Some(id) => complete(StatusCodes.OK, List(`Content-Type`(`text/plain(UTF-8)`)), "id")
             case _ => complete(StatusCodes.NotFound)
-              }
-            }
           }
-        } ~
+        }
+      }
+    } ~
     put { // update
       entity(as[String]) {
         pollDefinition => {
           try {
-            val jValue = parse(pollDefinition)
-            val pollJsonMap = jValue.values.asInstanceOf[Map[String, AnyVal]]
-            val id = "69437154-dc84-446f-b015-d4147c3f5166" // TODO, hard coded for now, needs to be added as a named parameter
-            //val id = pollJsonMap.get("id").get
-            DataAdapter.updatePoll(id.toString, pollJsonMap) match {
-              case 1 => complete(StatusCodes.OK)
-              case _ => complete(StatusCodes.NotFound)
+            Poll(pollDefinition) match {
+              case poll:Poll => poll.update() match {
+                case 1 => complete(StatusCodes.OK)
+                case 0 => complete(StatusCodes.NotFound)
+              }
+              case _ => complete(StatusCodes.BadRequest)
             }
           }
           catch {
             case ex: Exception =>
               logger.error(s"failed to put the poll definition $pollDefinition", ex)
               complete(StatusCodes.BadRequest)
-
           }
         }
       }
     } ~
     delete {
       parameters("id") { id: String =>
-        complete(
-          HttpEntity(
-            ContentTypes.`application/json`,
-            "{}"
-          )
-        )
+        Poll.read(id) match {
+          case -1 => complete(StatusCodes.NotFound)
+          case p: Poll => if (p.canDelete()) {
+            p.deletePoll() match {
+              case 1 => complete(StatusCodes.OK)
+              case _ => complete(StatusCodes.NotFound)
+            }
+          } else complete(StatusCodes.NotAcceptable)
+        }
       }
     }
-  } ~
-  path( "closePoll") {
+  }~
+  path("closePoll") {
     get {
       parameters("id") { id: String =>
         complete(
@@ -90,7 +85,7 @@ object PollApi extends LazyLogging {
       }
     }
   } ~
-  path( "computeResults") {
+  path("computeResults") {
     get {
       parameters("id") { id: String =>
         complete(
