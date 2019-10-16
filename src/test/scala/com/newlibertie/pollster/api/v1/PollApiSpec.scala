@@ -64,7 +64,7 @@ class PollApiSpec extends WordSpec with Matchers with ScalatestRouteTest with La
       Put("/poll").withEntity(
         """
           |{
-          |  "id":"69437154-dc84-446f-b015-d4147c3f5166",
+          |  "id":"d5203114-0504-4067-9de9-10ea0cf50785",
           |  "title":"abacadabra-updated",
           |  "tags":["abacadabra3", "abacadabra4"],
           |  "creator_id":"abacadabra",

@@ -4,6 +4,8 @@ import java.sql.{Connection, DriverManager, ResultSet}
 
 import com.newlibertie.pollster.impl.Poll
 import com.typesafe.scalalogging.LazyLogging
+import net.liftweb.json.DefaultFormats
+import net.liftweb.json.Serialization.write
 
 import scala.collection.mutable
 
@@ -14,6 +16,7 @@ object DataAdapter extends LazyLogging {
     "jdbc:mysql://localhost/nldb?zeroDateTimeBehavior=convertToNull&serverTimezone=UTC") ;
 
   val cachedConnection:ThreadLocal[Connection] = new ThreadLocal();
+  implicit val formats = DefaultFormats
 
   def getConnection: Connection = {
     val existingConnection = cachedConnection.get();
@@ -38,7 +41,7 @@ object DataAdapter extends LazyLogging {
         |VALUES (
         |  '${poll.p.id.get}',
         |  '${poll.p.title}',
-        |  '${poll.p.tags}',
+        |  '${write(poll.p.tags)}',
         |  '${poll.p.creator_id}',
         |  '${poll.p.opening_ts.toInstant.toString.replace('T', ' ').dropRight(1)}',
         |  '${poll.p.closing_ts.toInstant.toString.replace('T', ' ').dropRight(1)}',
@@ -95,7 +98,7 @@ object DataAdapter extends LazyLogging {
          |UPDATE nldb.polls
          |SET
          |   title = '${poll.p.title}',
-         |   tags = '${poll.p.tags.toString()}',
+         |   tags = '${write(poll.p.tags)}',
          |   opening_ts = '${poll.p.opening_ts.toInstant.toString.replace('T', ' ').dropRight(1)}',
          |   closing_ts = '${poll.p.closing_ts.toInstant.toString.replace('T', ' ').dropRight(1)}',
          |   poll_type = '${poll.p.poll_type}',

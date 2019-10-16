@@ -9,11 +9,11 @@ import net.liftweb.json._
 import scala.collection.mutable
 
 object Poll {
+  implicit val formats: DefaultFormats.type = DefaultFormats
 
   def apply(params: PollParameters): Poll = new Poll(params)
 
   def apply(pollDetails:String): Poll = {
-    implicit val formats: DefaultFormats.type = DefaultFormats
     val jValue = parse(pollDetails)
     val pollParameters = jValue.extract[PollParameters]
     val pollJsonMap = jValue.values.asInstanceOf[Map[String, String]]
@@ -34,11 +34,9 @@ object Poll {
   def read(id:String) = {
     DataAdapter.getPoll(id) match {
       case m:mutable.Map[String, Any] =>
-        val tagsStr: String = m.get("tags").get.toString
-        val tagsStrLen = tagsStr.length
         new Poll(PollParameters(Some(m.get("id").toString),
           m.get("title").toString,
-          tagsStr.substring(5, tagsStrLen - 1).split(",").toList,
+          parse(m.get("tags").get.toString).values.asInstanceOf[List[String]],
           m.get("creator_id").toString,
           m.get("opening_ts").get.asInstanceOf[Date],
           m.get("closing_ts").get.asInstanceOf[Date],
