@@ -4,11 +4,12 @@ import java.math.BigInteger
 import java.util.Date
 
 import com.newlibertie.pollster.DataAdapter
+import com.typesafe.scalalogging.LazyLogging
 import net.liftweb.json._
 
 import scala.collection.mutable
 
-object Poll {
+object Poll extends LazyLogging {
   implicit val formats: DefaultFormats.type = DefaultFormats
 
   def apply(params: PollParameters): Poll = new Poll(params)
@@ -21,9 +22,11 @@ object Poll {
       !pollJsonMap.contains("p") ||
         !pollJsonMap.contains("g") ||
         !pollJsonMap.contains("s")){
+      logger.info("constructing fresh CryptographicParameters.")
       new CryptographicParameters()
     }
     else {                             // else extract out the ones provided
+      logger.info("constructing CryptographicParameters from provided input.")
       CryptographicParameters(
         new BigInteger(jValue.values.asInstanceOf[Map[String, String]]("p")),
         new BigInteger(jValue.values.asInstanceOf[Map[String, String]]("g")),
@@ -72,8 +75,8 @@ class Poll(val p:PollParameters, val cp:CryptographicParameters = new Cryptograp
   def deletePoll(): Int = {
     DataAdapter.deletePoll(p.id.get)
   }
-  override def toString: String = {
+  def toJsonString: String = {
     val sb  = new StringBuilder("{")
-    sb.append(p.toString).append(",").append(cp.toString).append("}").toString()
+    sb.append(p.getKeyValueSequenceString).append(",").append(cp.getPublicKeyValueString).append("}").toString()
   }
 }
