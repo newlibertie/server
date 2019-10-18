@@ -5,7 +5,7 @@ import java.util.{Date, UUID}
 
 case class PollParameters
 (
-   var id:Option[String],
+   var id:Option[String]=None,
    title:String,
    tags:List[String],
    creator_id:String,
@@ -23,7 +23,7 @@ case class PollParameters
   if(creation_ts == None) {
     creation_ts = Some(new Date())
   }
-  override def toString: String = {
+  def getKeyValueSequenceString: String = { // contribution to the Poll's JSON string generation
       """
         |"id":"${id.get}",
         |"tittle":"${title}",

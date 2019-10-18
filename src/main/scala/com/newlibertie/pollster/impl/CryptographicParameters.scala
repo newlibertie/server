@@ -24,7 +24,7 @@ case class CryptographicParameters
 {
   val public_key_h = generator_g.modPow(private_key_s, large_prime_p)
 
-  override def toString: String = {
+  def getPublicKeyValueString: String = {
     s"""
       |"public_key_h":"${public_key_h}"
       |""".stripMargin

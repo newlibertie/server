@@ -24,17 +24,25 @@ object PollApi extends LazyLogging {
       parameters("id") { id: String =>
         Poll.read(id) match {
           case -1 => complete(StatusCodes.NotFound)
-          case p: Poll => complete(HttpResponse(entity = p.toString))
+          case -2 => complete(StatusCodes.BadRequest)
+          case p: Poll => complete(HttpResponse(entity = p.toJsonString))
         }
       }
     } ~
     post { // Create a Poll
       entity(as[String]) {
         pollDefinition => {
-          val poll = Poll(pollDefinition)
-          poll.create match {
-            case Some(id) => complete(StatusCodes.OK, List(`Content-Type`(`text/plain(UTF-8)`)), "id")
-            case _ => complete(StatusCodes.NotFound)
+          try {
+            val poll = Poll(pollDefinition)
+            poll.create match {
+              case Some(id) => complete(StatusCodes.OK, List(`Content-Type`(`text/plain(UTF-8)`)), "id")
+              case _ => complete(StatusCodes.NotFound)
+            }
+          }
+          catch {
+            case ex: Exception =>
+              logger.error(s"failed to put the poll definition $pollDefinition", ex)
+              complete(StatusCodes.BadRequest)
           }
         }
       }
@@ -63,6 +71,7 @@ object PollApi extends LazyLogging {
       parameters("id") { id: String =>
         Poll.read(id) match {
           case -1 => complete(StatusCodes.NotFound)
+          case -2 => complete(StatusCodes.BadRequest)
           case p: Poll => if (p.canDelete()) {
             p.deletePoll() match {
               case 1 => complete(StatusCodes.OK)

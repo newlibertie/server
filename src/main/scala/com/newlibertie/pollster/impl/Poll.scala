@@ -4,11 +4,12 @@ import java.math.BigInteger
 import java.util.Date
 
 import com.newlibertie.pollster.DataAdapter
+import com.typesafe.scalalogging.LazyLogging
 import net.liftweb.json._
 
 import scala.collection.mutable
 
-object Poll {
+object Poll extends LazyLogging {
   implicit val formats: DefaultFormats.type = DefaultFormats
 
   def apply(params: PollParameters): Poll = new Poll(params)
@@ -21,9 +22,11 @@ object Poll {
       !pollJsonMap.contains("p") ||
         !pollJsonMap.contains("g") ||
         !pollJsonMap.contains("s")){
+      logger.info("constructing fresh CryptographicParameters.")
       new CryptographicParameters()
     }
     else {                             // else extract out the ones provided
+      logger.info("constructing CryptographicParameters from provided input.")
       CryptographicParameters(
         new BigInteger(jValue.values.asInstanceOf[Map[String, String]]("p")),
         new BigInteger(jValue.values.asInstanceOf[Map[String, String]]("g")),
@@ -34,7 +37,8 @@ object Poll {
   def read(id:String) = {
     DataAdapter.getPoll(id) match {
       case m:mutable.Map[String, Any] =>
-        new Poll(PollParameters(Some(m.get("id").toString),
+        try {
+          new Poll(p = new PollParameters(Some(m.get("id").get.toString),
           m.get("title").toString,
           parse(m.get("tags").get.toString).values.asInstanceOf[List[String]],
           m.get("creator_id").toString,
@@ -44,9 +48,15 @@ object Poll {
           Some(m.get("last_modification_ts").get.asInstanceOf[Date]),
           m.get("poll_spec").get.toString,
           m.get("poll_type").get.toString),
-        new CryptographicParameters(new BigInteger(m.get("large_prime_p").get.toString),
-          new BigInteger(m.get("generator_g").get.toString),
-          new BigInteger(m.get("private_key_s").get.toString)))
+          cp = new CryptographicParameters(new BigInteger(m.get("large_prime_p").get.toString),
+            new BigInteger(m.get("generator_g").get.toString),
+            new BigInteger(m.get("private_key_s").get.toString)))
+        }
+        catch {
+          case ex: Exception =>
+            logger.error(s"Error constructing poll Object from id=${id}: ${ex.getMessage}")
+            -2
+        }
       case _ =>  -1
     }
   }
@@ -72,8 +82,8 @@ class Poll(val p:PollParameters, val cp:CryptographicParameters = new Cryptograp
   def deletePoll(): Int = {
     DataAdapter.deletePoll(p.id.get)
   }
-  override def toString: String = {
+  def toJsonString: String = {
     val sb  = new StringBuilder("{")
-    sb.append(p.toString).append(",").append(cp.toString).append("}").toString()
+    sb.append(p.getKeyValueSequenceString).append(",").append(cp.getPublicKeyValueString).append("}").toString()
   }
 }
