@@ -37,7 +37,8 @@ object Poll extends LazyLogging {
   def read(id:String) = {
     DataAdapter.getPoll(id) match {
       case m:mutable.Map[String, Any] =>
-        new Poll(PollParameters(Some(m.get("id").toString),
+        try {
+          new Poll(p = new PollParameters(Some(m.get("id").get.toString),
           m.get("title").toString,
           parse(m.get("tags").get.toString).values.asInstanceOf[List[String]],
           m.get("creator_id").toString,
@@ -47,9 +48,15 @@ object Poll extends LazyLogging {
           Some(m.get("last_modification_ts").get.asInstanceOf[Date]),
           m.get("poll_spec").get.toString,
           m.get("poll_type").get.toString),
-        new CryptographicParameters(new BigInteger(m.get("large_prime_p").get.toString),
-          new BigInteger(m.get("generator_g").get.toString),
-          new BigInteger(m.get("private_key_s").get.toString)))
+          cp = new CryptographicParameters(new BigInteger(m.get("large_prime_p").get.toString),
+            new BigInteger(m.get("generator_g").get.toString),
+            new BigInteger(m.get("private_key_s").get.toString)))
+        }
+        catch {
+          case ex: Exception =>
+            logger.error(s"Error constructing poll Object from id=${id}: ${ex.getMessage}")
+            -2
+        }
       case _ =>  -1
     }
   }
