@@ -12,7 +12,7 @@ class PollApiSpec extends WordSpec with Matchers with ScalatestRouteTest with La
   "The service" should {
 
     "support poll create  " in {
-      Post("/poll").withEntity(
+      Post("/poll").withEntity( // test a success case
         """
           |{
           |  "title":"abacadabra",
@@ -29,10 +29,24 @@ class PollApiSpec extends WordSpec with Matchers with ScalatestRouteTest with La
         entityAs[String].indexOf("id") shouldBe 0   // TODO Can json parse
         contentType shouldEqual ContentTypes.`text/plain(UTF-8)`
       }
+      Post("/poll").withEntity( // testing for invalid JSON string input
+        """
+          |  "title":"abacadabra",
+          |  "tags":["abacadabra", "abacadabra2"],
+          |  "creator_id":"abacadabra",
+          |  "opening_ts": "2019-07-01T02:51:00Z" ,
+          |  "closing_ts": "2019-07-01T02:51:00Z" ,
+          |  "poll_type":"SIMPLE",
+          |  "poll_spec":"abacadabra"
+          |}
+          |
+      """.stripMargin) ~> Route.seal(PollApi.routes) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+      }
     }
 
-
-    "support poll get  " in {
+    "support poll get create update delete " in {
+      // first create a new Poll, use its id to retrieve it back
       val pollDefinitionStr = """
       |{
         |  "title":"abacadabra",
@@ -45,37 +59,65 @@ class PollApiSpec extends WordSpec with Matchers with ScalatestRouteTest with La
         |}
       """.stripMargin
 
-      val poll = Poll(pollDefinitionStr)
-      val pollId: String = Poll.write(poll) match {
-        case None => ""//Or handle the lack of a value another way: throw an error, etc.
+      val pollId: String = Poll(pollDefinitionStr).create() match {
         case Some(s: String) => s //return the string to set your value
+        case _ => logger.info("Failed to create a Poll for get test.")
+          "Not created"
       }
-
+      // test the get success case with pollId of the just create Poll above
       Get(s"/poll?id=$pollId") ~> Route.seal(PollApi.routes) ~> check {
         logger.info("entityAs[String]: " + entityAs[String])
-        //println(entityAs[String])
         status shouldEqual StatusCodes.OK
         entityAs[String].length()  should be > 10 // TODO Can json parse
       }
+      // test the get failure case on non-existing PollId
       Get(s"/poll?id=NOT-THERE$pollId") ~> Route.seal(PollApi.routes) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
-    }
-
-
-    "support poll update  " in {
-      Put("/poll?id=123") ~> Route.seal(PollApi.routes) ~> check {
+      Put("/poll").withEntity(
+        s"""
+          |{
+          |  "id":"${pollId}",
+          |  "title":"abacadabra-updated",
+          |  "tags":["abacadabra3", "abacadabra4"],
+          |  "creator_id":"abacadabra",
+          |  "opening_ts": "2019-08-01T02:51:00Z" ,
+          |  "closing_ts": "2019-10-01T02:51:00Z" ,
+          |  "poll_type":"MULTIPLE_CHOICE",
+          |  "poll_spec":"abacadabra-updated"
+          |}
+        """.stripMargin) ~> Route.seal(PollApi.routes) ~> check {
         status shouldEqual StatusCodes.OK
       }
-      Put("/poll") ~> Route.seal(PollApi.routes) ~> check {
+      // test the delete success case with the pollId of the created Poll
+      Delete(s"/poll?id=$pollId") ~> Route.seal(PollApi.routes) ~> check {
+        status shouldEqual StatusCodes.OK
+      }
+    }
+
+    // test bad input case of missing id in the Json string
+    "support poll update  " in {
+      Put("/poll").withEntity(
+        """
+          |{
+          |  "id":"NOT-THERE",
+          |  "title":"abacadabra-updated",
+          |  "tags":["abacadabra3", "abacadabra4"],
+          |  "creator_id":"abacadabra",
+          |  "opening_ts": "2019-08-01T02:51:00Z" ,
+          |  "closing_ts": "2019-10-01T02:51:00Z" ,
+          |  "poll_type":"MULTIPLE_CHOICE",
+          |  "poll_spec":"abacadabra-updated"
+          |}
+        """.stripMargin) ~> Route.seal(PollApi.routes) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
 
-
+    // test the bad parameter value and absent parameter cases
     "support poll delete  " in {
       Delete("/poll?id=123") ~> Route.seal(PollApi.routes) ~> check {
-        status shouldEqual StatusCodes.OK
+        status shouldEqual StatusCodes.NotFound
       }
       Delete("/poll") ~> Route.seal(PollApi.routes) ~> check {
         status shouldEqual StatusCodes.NotFound
