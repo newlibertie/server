@@ -5,9 +5,10 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 //import com.newlibertie.pollster.DataAdapter.logger
 import com.newlibertie.pollster.impl.Poll
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest._
 import com.typesafe.scalalogging.LazyLogging
 
+@Ignore
 class PollApiSpec extends WordSpec with Matchers with ScalatestRouteTest with LazyLogging {
   "The service" should {
 
