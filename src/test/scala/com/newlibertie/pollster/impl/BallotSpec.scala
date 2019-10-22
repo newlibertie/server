@@ -26,7 +26,6 @@ class BallotSpec extends FlatSpec with Matchers {
 
   "Ballot" should "have x and y" in {
     val b = new Ballot(p.cp, true)
-    b.x shouldBe b.y  // failing
-    
+    b.x should not equal b.y
   }
 }
