@@ -4,6 +4,9 @@ package com.newlibertie.pollster.impl
   * Implementationv of ballot
   * @param parameters cryptographic parameters of the poll this ballot is about
   * @param vote boolean vote, true = yay, false = nay
+  *
+  *          see docs/ballot-spec.png
+  *
   */
 class Ballot(cp:CryptographicParameters, vote:Boolean) {
 
