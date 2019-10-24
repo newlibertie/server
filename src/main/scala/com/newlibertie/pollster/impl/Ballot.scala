@@ -28,10 +28,14 @@ class Ballot(cp:CryptographicParameters, vote:Boolean) {
       cp.zkp_generator_G.modInverse(cp.large_prime_p)
     )
 
+  // TODO : get the C part and use it to constrain d1 and d2
+  val r1 = CryptographicParameters.random()
+  val d1 = CryptographicParameters.random()
+  val r2 = CryptographicParameters.random()
+  val d2 = CryptographicParameters.random()
+
   val a1, a2, b1, b2 =
     if(vote) {  // is positive vote
-      val r1 = CryptographicParameters.random()
-      val d1 = CryptographicParameters.random()
       val a1 = cp.generator_g.modPow(r1, cp.large_prime_p)
         .multiply( x.modPow(d1, cp.large_prime_p) )
         .mod(cp.large_prime_p)
@@ -43,8 +47,6 @@ class Ballot(cp:CryptographicParameters, vote:Boolean) {
       (a1, a2, b1, b2)
     }
     else {      // vote is negative
-      val r2 = CryptographicParameters.random()
-      val d2 = CryptographicParameters.random()
       val a1 = cp.generator_g.modPow(omega, cp.large_prime_p)
       val b1 = cp.public_key_h.modPow(omega, cp.large_prime_p)
       val a2 = cp.generator_g.modPow(r2, cp.large_prime_p)
