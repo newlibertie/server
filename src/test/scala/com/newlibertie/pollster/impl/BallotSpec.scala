@@ -1,7 +1,6 @@
 package com.newlibertie.pollster.impl
 
 import org.scalatest.{FlatSpec, Matchers}
-import com.newlibertie.pollster.impl.Ballot
 
 class BallotSpec extends FlatSpec with Matchers {
 
