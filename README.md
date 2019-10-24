@@ -26,7 +26,7 @@ poll at which time, the following can be verified by anyone
    b. The decryped value is the total number of positive votes
 
 More details in the white paper (TBP).  The mechanism is quite similar to that in the following
-: https://www.win.tue.nl/~berry/papers/euro97.pdf . Zero knowledge additions for 2b are similar
+: https://www.win.tue.nl/%7Eberry/papers/euro97.pdf . Zero knowledge additions for 2b are similar
 to the question asked here: https://crypto.stackexchange.com/questions/9997/perfect-zero-knowledge-for-the-schnorr-protocol
 
 ### Ballot sketch
