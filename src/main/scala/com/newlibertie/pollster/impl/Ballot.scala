@@ -3,9 +3,10 @@ package com.newlibertie.pollster.impl
 /**
   * Implementationv of ballot
   * @param parameters cryptographic parameters of the poll this ballot is about
+  * @param voter String identifier identifying the voter
   * @param vote boolean vote, true = yay, false = nay
   */
-class Ballot(cp:CryptographicParameters, vote:Boolean) {
+class Ballot(cp:CryptographicParameters, voter:String, vote:Boolean) {
 
   // Voter votes m^0 or m^1
   // Ballot is a tuple (x,y,a1,b1,a2,b2)
@@ -28,7 +29,7 @@ class Ballot(cp:CryptographicParameters, vote:Boolean) {
       cp.zkp_generator_G.modInverse(cp.large_prime_p)
     )
 
-  // TODO : get the C part and use it to constrain d1 and d2
+  // TODO : get the C(voter) part and use it to constrain d1 and d2
   val r1 = CryptographicParameters.random()
   val d1 = CryptographicParameters.random()
   val r2 = CryptographicParameters.random()
