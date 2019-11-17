@@ -24,7 +24,8 @@ class BallotSpec extends FlatSpec with Matchers {
       """.stripMargin)
 
   "Ballot" should "have x and y" in {
-    val b = new Ballot(p.cp, "test-voter", true)
+    val b = new Ballot(p.cp, "test-voter")
+    b.cast(true)
     b.x should not equal b.y
   }
 }
