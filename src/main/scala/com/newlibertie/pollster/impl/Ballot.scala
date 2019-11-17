@@ -65,13 +65,16 @@ class Ballot(cp:CryptographicParameters, voter:String, vote:Boolean) {
     // parameters d1 and d2 that are used to produce the zero knowledge proof that the encrypted ballot is a
     // valid ballot for the poll in question
     val stringToHash = String.format("PollPublicKey(%s):Voter(%s)", cp.public_key_h.toString, voter)
-    val sha256bin = java.security.MessageDigest.getInstance("SHA-256").digest(stringToHash.getBytes("utf-8"))
-    val c = new BigInteger(1, sha256bin)
-    var result:(BigInteger, BigInteger) = null
-    do {
-      val d1 = CryptographicParameters.random(c.bitLength())
-      result = (d1, c.subtract(d1))
-    } while( d1.compareTo(c) < 0 )
-    result
+    val shaBin = java.security.MessageDigest.getInstance("SHA-512").digest(stringToHash.getBytes("utf-8"))
+    val c = new BigInteger(1, shaBin)
+    var d1:BigInteger = null
+    var d2:BigInteger = null
+      do {
+        d1 = CryptographicParameters.random(c.bitLength())
+        d2 = c.subtract(d1)
+    } while(!(
+        d1.compareTo(c) < 0 && d2.compareTo(c) < 0
+        ))
+    (d1, d2)
   }
 }
