@@ -34,7 +34,7 @@ class Ballot(cp:CryptographicParameters, voter:String, vote:Boolean) {
   val r1 = CryptographicParameters.random()
   val r2 = CryptographicParameters.random()
 
-  val (d1, d2) = zkp_params_d1d2()
+  val (d1:BigInteger, d2:BigInteger) = zkp_params_d1d2()
 
   val a1, a2, b1, b2 =
     if(vote) {  // is positive vote
@@ -67,14 +67,11 @@ class Ballot(cp:CryptographicParameters, voter:String, vote:Boolean) {
     val stringToHash = String.format("PollPublicKey(%s):Voter(%s)", cp.public_key_h.toString, voter)
     val sha256bin = java.security.MessageDigest.getInstance("SHA-256").digest(stringToHash.getBytes("utf-8"))
     val c = new BigInteger(1, sha256bin)
-
-    var result:(BigInteger, BigInteger);
-    while(true) {
+    var result:(BigInteger, BigInteger) = null
+    do {
       val d1 = CryptographicParameters.random(c.bitLength())
-      if(d1.compareTo(c) < 0) {
-        result = (d1, c.subtract(d1))
-      }
-    }
+      result = (d1, c.subtract(d1))
+    } while( d1.compareTo(c) < 0 )
     result
   }
 }
