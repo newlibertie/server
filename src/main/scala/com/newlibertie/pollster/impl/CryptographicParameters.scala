@@ -9,7 +9,7 @@ object CryptographicParameters {
 
   def probablePrime() = BigInteger.probablePrime(BITS, rng)
 
-  def random() = new BigInteger(BITS, rng)
+  def random(bits:Int = BITS) = new BigInteger(bits, rng)
 
   def apply(p:BigInteger, g:BigInteger, s:BigInteger) = new CryptographicParameters(p, g, s)
 }
