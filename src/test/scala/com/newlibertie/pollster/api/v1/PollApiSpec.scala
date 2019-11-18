@@ -3,7 +3,6 @@ package com.newlibertie.pollster.api.v1
 import akka.http.scaladsl.model.{ContentTypes, StatusCodes}
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-//import com.newlibertie.pollster.DataAdapter.logger
 import com.newlibertie.pollster.impl.Poll
 import org.scalatest._
 import com.typesafe.scalalogging.LazyLogging
