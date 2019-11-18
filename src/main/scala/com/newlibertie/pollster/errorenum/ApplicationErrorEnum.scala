@@ -11,7 +11,7 @@ class ApplicationErrorEnum (errEnumName: String, initial:Int, capacity:Int) exte
 /**
   * companion object to define error variables for application errors
   */
-object ApplicationError extends DatabaseErrorEnum("DatabaseError", 0, 1000){
+object ApplicationError extends ApplicationErrorEnum("ApplicationError", 0, 1000){
   val Unknown         = AEVal(0, "Unknown")
   val AssertionError  = AEVal(1, "AssertionError")
   val ExceptionError  = AEVal(2, "ExceptionError")

@@ -11,7 +11,7 @@ import scala.collection.mutable
   * @param capacity the number of unique ids for the enum variables in the class with name $errEnumName
   */
 class BaseErrorEnum(val errEnumName: String, val initial:Int, val capacity:Int) extends Enumeration{
-  require(EnumStore.register(errEnumName, initial, capacity), "Failed to register: "+errEnumName)
+  require(BaseErrorEnum.register(errEnumName, initial, capacity), "Failed to register: "+errEnumName)
   type AppErr = AEVal
   import scala.language.implicitConversions
   implicit def valueAppErrVal(x: Value): AEVal = x.asInstanceOf[AEVal]
@@ -40,9 +40,9 @@ class BaseErrorEnum(val errEnumName: String, val initial:Int, val capacity:Int) 
 }
 
 /**
-  * Helping Object  providing validations and register each EnumClass derived from BaseErrorEnum
+  * Helping Object providing validations and register each EnumClass derived from BaseErrorEnum
   */
-private object EnumStore {
+private object BaseErrorEnum {
   class ErrEnumRange(val initial: Int, val capacity: Int)
   private val registry: mutable.Map[String, ErrEnumRange] = new mutable.HashMap
   def register(errEnumName: String, initial:Int, capacity:Int):Boolean = {
