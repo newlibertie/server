@@ -1,7 +1,9 @@
 name: Scala CI
 
 on:
-  push
+  push:
+    branches: 
+      - '**'
 
 jobs:
   build:
