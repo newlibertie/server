@@ -2,6 +2,8 @@ package com.newlibertie.pollster.impl
 
 import org.scalatest.{FlatSpec, Matchers}
 
+import scala.collection.mutable.ListBuffer
+
 class BallotSpec extends FlatSpec with Matchers {
 
   val p = Poll(
@@ -26,6 +28,8 @@ class BallotSpec extends FlatSpec with Matchers {
   "Ballot" should "have x and y" in {
     val b = new Ballot(p.cp, "test-voter")
     b.cast(true)
-    b.x should not equal b.y
+    val transcript = ListBuffer[String]();
+    b.verify(transcript)   // shouldBe true
+    transcript.foreach(line => println(line))
   }
 }

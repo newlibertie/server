@@ -2,6 +2,8 @@ package com.newlibertie.pollster.impl
 
 import java.math.BigInteger
 
+import scala.collection.mutable.ListBuffer
+
 /**
   * Implementationv of ballot
   *
@@ -93,5 +95,80 @@ class Ballot(cp:CryptographicParameters, voter:String) {
       |""".stripMargin
     val shaBin = java.security.MessageDigest.getInstance("SHA-512").digest(s.getBytes("utf-8"))
     new BigInteger(1, shaBin)
+  }
+
+
+  /**
+    * ZKP Verify integrity of the ballot
+    */
+  def verify(_outBuffer:ListBuffer[String]=null): Boolean = {
+    val outBuffer = if(_outBuffer == null)
+      new ListBuffer[String]()
+    else
+      _outBuffer
+    outBuffer +=
+      s"""C=${this.getC()}
+         |d1=${this.d1}
+         |d2=${this.d2}
+         |C = d1 + d2 ?\n
+         |""".stripMargin
+    if(!getC().equals(
+      this.d1.add(
+        this.d2
+      )
+    ))
+      return false
+
+    outBuffer +=
+      s"""a1=${this.a1}
+         |g=${cp.generator_g}
+         |r1=${this.r1}
+         |x=${this.x}
+         |d1=${this.d1}
+         |a1 = g^r1 . x ^ d1 ?\n
+         |""".stripMargin
+    if(!cp.generator_g.modPow(r1, cp.large_prime_p).multiply(x.modPow(d1, cp.large_prime_p)).mod(cp.large_prime_p).equals(a1))
+      return false
+
+    outBuffer +=
+      s"""b1=${this.b1}
+         |h=${cp.public_key_h}
+         |r1=${this.r1}
+         |y=${this.y}
+         |G=${cp.zkp_generator_G}
+         |d1=${this.d1}
+         |b1 = h^r1 (yG)^d1 ?\n
+         |""".stripMargin
+    val yG = y.multiply(cp.zkp_generator_G)
+    if(!cp.public_key_h.modPow(r1, cp.large_prime_p).multiply(
+        yG.modPow(d1, cp.large_prime_p)).mod(cp.large_prime_p).equals(b1))
+      return false
+
+    outBuffer +=
+      s"""a2=${this.a2}
+         |g=${cp.generator_g}
+         |r2=${this.r2}
+         |x=${this.x}
+         |d2=${this.d2}
+         |a2 = g^r2 x^d2 ?\n
+         |""".stripMargin
+    if(!cp.generator_g.modPow(r2, cp.large_prime_p).multiply(x.modPow(d2, cp.large_prime_p)).mod(cp.large_prime_p).equals(a2))
+      return false
+
+    outBuffer +=
+      s"""b2=${this.b2}
+         |h=${cp.public_key_h}
+         |r2=${this.r2}
+         |y=${this.y}
+         |G=${cp.zkp_generator_G}
+         |d2=${this.d2}
+         |b2 = h^r2 (y/G)^d2 ?\n
+         |""".stripMargin
+    val yByG = y.modInverse(cp.zkp_generator_G)
+    if(!cp.public_key_h.modPow(r2, cp.large_prime_p).multiply(
+      yByG.modPow(d2, cp.large_prime_p)).mod(cp.large_prime_p).equals(b2))
+      return false
+
+    true
   }
 }
