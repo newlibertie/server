@@ -17,7 +17,7 @@ class ApplicationErrorEnumTest extends WordSpec with Matchers with LazyLogging {
       }
       var stat = -1
       try {
-        var err:Any = TestApplicationErrorEnum.Unknown
+        var err:AnyRef = TestApplicationErrorEnum.Unknown
         err = TestApplicationErrorEnum2.Unknown
       }
       catch {
@@ -34,7 +34,7 @@ class ApplicationErrorEnumTest extends WordSpec with Matchers with LazyLogging {
         val Unknown         = AEVal(0, "Unknown")
       }
       try {
-        var err:Any = TestApplicationErrorEnum.Unknown
+        var err:AnyRef = TestApplicationErrorEnum.Unknown
         err = TestApplicationErrorEnum3.Unknown
       }
       catch {
