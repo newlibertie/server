@@ -29,6 +29,10 @@ class Ballot(cp:CryptographicParameters, voter:String) {
     * Cast a vote - populates all parameters to become a verifiable ballot
     * @param vote boolean vote, true = yay, false = nay
     */
+    // TODO: Can be made to have only-once semantics (in that case there may
+    // TODO: also save the metadata - where this ballot was casted, what UTC ts,
+    // TODO: etc - that can serve other purposes when aggregated at scale)
+
   def cast(vote:Boolean) = {
     // Voter votes m^0 or m^1
     // Ballot is a tuple (x,y,a1,b1,a2,b2)
@@ -80,10 +84,16 @@ class Ballot(cp:CryptographicParameters, voter:String) {
   }
 
   private def getC() = {
-    // take hash of voter string and poll details.  the hash of this constant is used to calculate the
-    // parameters d1 and d2 that are used to produce the zero knowledge proof that the encrypted ballot is a
-    // valid ballot for the poll in question
-    val s =       // same as in the while paper : H(v_i||T)
+    // take hash of <voter string, poll details>.  the hash of this content is used to calculate the
+    // parameters d1 and d2 - which are used to produce the zero knowledge proof that the encrypted
+    // ballot is a valid ballot for the given poll
+    //
+    // this.voter     is the name of the voter - eg: https://www.facebook.com/vpathak000
+    // the remaining parameters can be described as follows:
+    // h              poll public key - which is also the identifier for the polls
+    // x              some random numbers,  refer to the white paper
+    //
+    val s =       // the "formula" for the content hash is same as in the while paper : H(v_i||T)
     s"""${this.voter}
       |h=${cp.public_key_h}
       |x=${this.x}
