@@ -87,9 +87,13 @@ object DataAdapter extends LazyLogging {
     logger.info(query)
     val rs: ResultSet =
       getConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY).executeQuery(query)
+
+    // Comvert to Option form
+
     if (!rs.first()) {
       logger.error("failed to retrieve using: " + query)
-      DatabaseError.RecordNotFound
+      // TODO throw DatabaseError.RecordNotFound
+      throw new Error("dkfldsfd");
     }
     else {
       val md = rs.getMetaData
@@ -101,7 +105,15 @@ object DataAdapter extends LazyLogging {
       mutableMap
     }
   }
-  def updatePoll(poll:Poll): Any = {
+
+  /**
+    * Update the poll.  if success then return nothing else throw exception
+    *
+    * @param poll
+    */
+  def updatePoll(poll:Poll):Unit = {
+
+
     val query =
       s"""
          |UPDATE nldb.polls
@@ -115,9 +127,17 @@ object DataAdapter extends LazyLogging {
          |WHERE id = '${poll.p.id.get}'
       """.stripMargin
     logger.info(query)
-    getConnection.createStatement().executeUpdate(query)
+    val x = getConnection.createStatement().executeUpdate(query)
+    //x match {
+    //  case Some()
+    // case None => Throw new ErrorEnum(XXX)
+    //}
   }
-  def deletePoll(id: String): Any = {
-    executeUpdateQuery(s"DELETE FROM polls WHERE id = '$id'")
+  def deletePoll(id: String):Unit = {
+    val x = executeUpdateQuery(s"DELETE FROM polls WHERE id = '$id'")
+    //x match {
+    //  case Some()
+    // case None => Throw
+    //}
   }
 }

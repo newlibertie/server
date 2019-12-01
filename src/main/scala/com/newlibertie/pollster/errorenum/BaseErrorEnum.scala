@@ -10,7 +10,10 @@ import scala.collection.mutable
   * @param initial  the id of the first enum variable in the class with name $errEnumName
   * @param capacity the number of unique ids for the enum variables in the class with name $errEnumName
   */
-class BaseErrorEnum(val errEnumName: String, val initial:Int, val capacity:Int) extends Enumeration{
+
+// TODO : Is there a benefit in having class also extend from or implement Exception or Throwable
+
+class BaseErrorEnum(val errEnumName: String, val initial:Int, val capacity:Int) extends Enumeration { // with Throwable {
   require(BaseErrorEnum.register(errEnumName, initial, capacity), "Failed to register: "+errEnumName)
   type AppErr = AEVal
   import scala.language.implicitConversions
