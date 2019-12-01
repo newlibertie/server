@@ -4,6 +4,7 @@ import java.math.BigInteger
 import java.util.Date
 
 import com.newlibertie.pollster.DataAdapter
+import com.newlibertie.pollster.errorenum.{ApplicationError, BaseErrorEnum, DatabaseError, DatabaseErrorEnum}
 import com.typesafe.scalalogging.LazyLogging
 import net.liftweb.json._
 
@@ -55,9 +56,10 @@ object Poll extends LazyLogging {
         catch {
           case ex: Exception =>
             logger.error(s"Error constructing poll Object from id=${id}: ${ex.getMessage}")
-            -2
+            ApplicationError.ExceptionError
         }
-      case _ =>  -1
+      case DatabaseError.RecordNotFound => DatabaseError.RecordNotFound
+      case _ =>  ApplicationError.Unknown
     }
   }
 }
@@ -79,7 +81,7 @@ class Poll(val p:PollParameters, val cp:CryptographicParameters = new Cryptograp
   def canOpen():Boolean = {
     p.opening_ts after new Date()
   }
-  def deletePoll(): Int = {
+  def deletePoll(): Any = {
     DataAdapter.deletePoll(p.id.get)
   }
   def toJsonString: String = {

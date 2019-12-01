@@ -1,10 +1,13 @@
 package com.newlibertie.pollster.api.v1
 
+import java.sql.{DatabaseMetaData, SQLException, SQLTimeoutException}
+
 import akka.http.scaladsl.model.ContentTypes._
 import akka.http.scaladsl.model.headers.`Content-Type`
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
+import com.newlibertie.pollster.errorenum.{ApplicationError, ApplicationErrorEnum, BaseErrorEnum, DatabaseError, DatabaseErrorEnum}
 import com.newlibertie.pollster.impl.Poll
 import com.typesafe.scalalogging.LazyLogging
 
@@ -23,9 +26,10 @@ object PollApi extends LazyLogging {
     get {
       parameters("id") { id: String =>
         Poll.read(id) match {
-          case -1 => complete(StatusCodes.NotFound)
-          case -2 => complete(StatusCodes.BadRequest)
           case p: Poll => complete(HttpResponse(entity = p.toJsonString))
+          case DatabaseError.RecordNotFound => complete(StatusCodes.NotFound)
+          case ApplicationError.ExceptionError => complete(StatusCodes.InternalServerError)
+          case _ => complete(StatusCodes.InternalServerError)
         }
       }
     } ~
@@ -70,12 +74,14 @@ object PollApi extends LazyLogging {
     delete {
       parameters("id") { id: String =>
         Poll.read(id) match {
-          case -1 => complete(StatusCodes.NotFound)
-          case -2 => complete(StatusCodes.BadRequest)
+          case DatabaseError.RecordNotFound => complete(StatusCodes.NotFound)
+          case _:DatabaseErrorEnum#AEVal => complete(StatusCodes.BadRequest)
+          case _:BaseErrorEnum#AEVal => complete(StatusCodes.InternalServerError)
           case p: Poll => if (p.canDelete()) {
             p.deletePoll() match {
               case 1 => complete(StatusCodes.OK)
-              case _ => complete(StatusCodes.NotFound)
+              case 0 => complete(StatusCodes.NotFound)
+              case _ => complete(StatusCodes.InternalServerError)
             }
           } else complete(StatusCodes.NotAcceptable)
         }
