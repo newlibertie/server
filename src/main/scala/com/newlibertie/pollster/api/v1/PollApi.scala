@@ -1,13 +1,11 @@
 package com.newlibertie.pollster.api.v1
 
-import java.sql.{DatabaseMetaData, SQLException, SQLTimeoutException}
-
 import akka.http.scaladsl.model.ContentTypes._
 import akka.http.scaladsl.model.headers.`Content-Type`
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import com.newlibertie.pollster.errorenum.{ApplicationError, ApplicationErrorEnum, BaseErrorEnum, DatabaseError, DatabaseErrorEnum}
+import com.newlibertie.pollster.errorenum.{ApplicationError, DatabaseError, DatabaseErrorEnum}
 import com.newlibertie.pollster.impl.Poll
 import com.typesafe.scalalogging.LazyLogging
 
@@ -25,12 +23,18 @@ object PollApi extends LazyLogging {
   lazy val routes: Route = path("poll") {
     get {
       parameters("id") { id: String =>
-        Poll.read(id) match {
-          case p: Poll => complete(HttpResponse(entity = p.toJsonString))
-          case DatabaseError.RecordNotFound => complete(StatusCodes.NotFound)
-          case ApplicationError.ExceptionError => complete(StatusCodes.InternalServerError)
-          case _ => complete(StatusCodes.InternalServerError)
+        try {
+          Poll.read(id) match {
+            case p: Poll => complete(HttpResponse(entity = p.toJsonString))
+            case _ => complete(StatusCodes.InternalServerError)
+          }
         }
+        catch {
+            case DatabaseError.RecordNotFound => complete(StatusCodes.NotFound)
+            case ApplicationError.ExceptionError => complete(StatusCodes.InternalServerError)
+            case _:Throwable => complete(StatusCodes.InternalServerError)
+          }
+       }
       }
     } ~
     post { // Create a Poll
@@ -73,26 +77,38 @@ object PollApi extends LazyLogging {
     } ~
     delete {
       parameters("id") { id: String =>
-        Poll.read(id) match {
-          case DatabaseError.RecordNotFound => complete(StatusCodes.NotFound)
-          case _:DatabaseErrorEnum#AEVal => complete(StatusCodes.BadRequest)
-          case _:BaseErrorEnum#AEVal => complete(StatusCodes.InternalServerError)
-          case p: Poll => if (p.canDelete()) {
-            p.deletePoll() match {
-              case 1 => complete(StatusCodes.OK)
-              case 0 => complete(StatusCodes.NotFound)
-              case _ => complete(StatusCodes.InternalServerError)
+        try {
+          Poll.read(id) match {
+            case p: Poll => if (p.canDelete()) {
+              try {
+                p.deletePoll() match {
+                  case 1 => complete(StatusCodes.OK)
+                  case 0 => complete(StatusCodes.NotFound)
+                  case _ => complete(StatusCodes.InternalServerError)
+                }
+              }
+              catch {
+                case ex: Exception =>
+                  logger.error(s"failed to delete the poll with id : $id", ex)
+                  complete(StatusCodes.InternalServerError)
+              }
             }
-          } else complete(StatusCodes.NotAcceptable)
+            else complete(StatusCodes.Unauthorized)
+          }
+        }
+        catch {
+          case DatabaseError.RecordNotFound => complete(StatusCodes.NotFound)
+          case ApplicationError.ExceptionError => complete(StatusCodes.InternalServerError)
+          case _:DatabaseErrorEnum#AEVal => complete(StatusCodes.BadRequest)
+          case _:Throwable => complete(StatusCodes.InternalServerError)
         }
       }
-    }
-  }~
-  path("closePoll") {
-    get {
+    }~
+    path("closePoll") {
+      get {
       parameters("id") { id: String =>
         complete(
-          HttpEntity(
+          m = HttpEntity(
             ContentTypes.`application/json`,
             "{}"
           )

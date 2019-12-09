@@ -6,7 +6,7 @@ package com.newlibertie.pollster.errorenum
   * @param initial  the id of the first enum variable in the class with name $errEnumName
   * @param capacity the number of unique ids for the enum variables in the class with name $errEnumName
   */
-class ApplicationErrorEnum (errEnumName: String, initial:Int, capacity:Int) extends BaseErrorEnum(errEnumName, initial, capacity)
+class ApplicationErrorEnum (errEnumName: String, initial:Int, capacity:Int) extends BaseError(errEnumName, initial, capacity)
 
 /**
   * companion object to define error variables for application errors

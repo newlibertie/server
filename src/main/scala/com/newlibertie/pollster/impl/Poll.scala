@@ -4,7 +4,7 @@ import java.math.BigInteger
 import java.util.Date
 
 import com.newlibertie.pollster.DataAdapter
-import com.newlibertie.pollster.errorenum.{ApplicationError, BaseErrorEnum, DatabaseError, DatabaseErrorEnum}
+import com.newlibertie.pollster.errorenum.{ApplicationError, DatabaseError, DatabaseErrorEnum}
 import com.typesafe.scalalogging.LazyLogging
 import net.liftweb.json._
 
@@ -36,30 +36,34 @@ object Poll extends LazyLogging {
     new Poll(pollParameters, cryptographicParameters)
   }
   def read(id:String) = {
-    DataAdapter.getPoll(id) match {
-      case m:mutable.Map[String, Any] =>
-        try {
-          new Poll(p = new PollParameters(Some(m.get("id").get.toString),
-          m.get("title").toString,
-          parse(m.get("tags").get.toString).values.asInstanceOf[List[String]],
-          m.get("creator_id").toString,
-          m.get("opening_ts").get.asInstanceOf[Date],
-          m.get("closing_ts").get.asInstanceOf[Date],
-          Some(m.get("creation_ts").get.asInstanceOf[Date]),
-          Some(m.get("last_modification_ts").get.asInstanceOf[Date]),
-          m.get("poll_spec").get.toString,
-          m.get("poll_type").get.toString),
-          cp = new CryptographicParameters(new BigInteger(m.get("large_prime_p").get.toString),
-            new BigInteger(m.get("generator_g").get.toString),
-            new BigInteger(m.get("private_key_s").get.toString)))
-        }
-        catch {
-          case ex: Exception =>
-            logger.error(s"Error constructing poll Object from id=${id}: ${ex.getMessage}")
-            ApplicationError.ExceptionError
-        }
-      case DatabaseError.RecordNotFound => DatabaseError.RecordNotFound
-      case _ =>  ApplicationError.Unknown
+    try {
+      DataAdapter.getPoll(id) match {
+        case m:mutable.Map[String, Any] =>
+          try {
+            new Poll(p = PollParameters(Some(m.get("id").get.toString),
+              m.get("title").toString,
+              parse(m.get("tags").get.toString).values.asInstanceOf[List[String]],
+              m.get("creator_id").toString,
+              m.get("opening_ts").get.asInstanceOf[Date],
+              m.get("closing_ts").get.asInstanceOf[Date],
+              Some(m.get("creation_ts").get.asInstanceOf[Date]),
+              Some(m.get("last_modification_ts").get.asInstanceOf[Date]),
+              m.get("poll_spec").get.toString,
+              m.get("poll_type").get.toString),
+              cp = new CryptographicParameters(new BigInteger(m.get("large_prime_p").get.toString),
+                new BigInteger(m.get("generator_g").get.toString),
+                new BigInteger(m.get("private_key_s").get.toString)))
+          }
+          catch {
+            case ex: Exception =>
+              logger.error(s"Error constructing poll Object from id=${id}: ${ex.getMessage}")
+              ApplicationError.ExceptionError
+          }
+      }
+    }
+    catch {
+      case DatabaseError.RecordNotFound => throw DatabaseError.RecordNotFound
+      case _ => throw ApplicationError.Unknown
     }
   }
 }
@@ -81,7 +85,7 @@ class Poll(val p:PollParameters, val cp:CryptographicParameters = new Cryptograp
   def canOpen():Boolean = {
     p.opening_ts after new Date()
   }
-  def deletePoll(): Any = {
+  def deletePoll(): Int = {
     DataAdapter.deletePoll(p.id.get)
   }
   def toJsonString: String = {

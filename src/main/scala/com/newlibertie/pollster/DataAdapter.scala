@@ -31,12 +31,12 @@ object DataAdapter extends LazyLogging {
     }
   }
 
-  private def executeUpdateQuery(sql: String): Any = {
+  private def executeUpdateQuery(sql: String): Int = {
     try getConnection.createStatement().executeUpdate(sql)
     catch {
-      case _: SQLException => DatabaseError.Access
-      case _: SQLTimeoutException => DatabaseError.Timeout
-      case _: Throwable => ApplicationError.ExceptionError
+      case _: SQLException => throw DatabaseError.Access
+      case _: SQLTimeoutException => throw DatabaseError.Timeout
+      case _: Throwable => throw ApplicationError.ExceptionError
     }
   }
 
@@ -67,7 +67,7 @@ object DataAdapter extends LazyLogging {
     val numRows = executeUpdateQuery(query)
     if (numRows != 1) {
       logger.error("failed to insert " + query)
-      DatabaseError.ConstraintViolation
+      throw DatabaseError.ConstraintViolation
     }
     else {
       logger.info("poll.p.id: " + poll.p.id)
@@ -75,7 +75,7 @@ object DataAdapter extends LazyLogging {
     }
   }
 
-  def getPoll(id: String) = {
+  def getPoll(id: String):mutable.Map[String, Any] = {
     val query =
       s"""
          |SELECT
@@ -89,7 +89,7 @@ object DataAdapter extends LazyLogging {
       getConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY).executeQuery(query)
     if (!rs.first()) {
       logger.error("failed to retrieve using: " + query)
-      DatabaseError.RecordNotFound
+      throw DatabaseError.RecordNotFound
     }
     else {
       val md = rs.getMetaData
@@ -117,7 +117,7 @@ object DataAdapter extends LazyLogging {
     logger.info(query)
     getConnection.createStatement().executeUpdate(query)
   }
-  def deletePoll(id: String): Any = {
+  def deletePoll(id: String): Int = {
     executeUpdateQuery(s"DELETE FROM polls WHERE id = '$id'")
   }
 }
