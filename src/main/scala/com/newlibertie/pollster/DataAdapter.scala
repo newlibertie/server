@@ -1,7 +1,9 @@
 package com.newlibertie.pollster
 
-import java.sql.{Connection, DriverManager, ResultSet}
+import java.sql.{Connection, DriverManager, ResultSet, SQLException, SQLTimeoutException}
+import java.util.Date
 
+import com.newlibertie.pollster.errorenum.{ApplicationError, DatabaseError}
 import com.newlibertie.pollster.impl.Poll
 import com.typesafe.scalalogging.LazyLogging
 import net.liftweb.json.DefaultFormats
@@ -30,6 +32,15 @@ object DataAdapter extends LazyLogging {
     }
   }
 
+  private def executeUpdateQuery(sql: String): Int = {
+    try getConnection.createStatement().executeUpdate(sql)
+    catch {
+      case _: SQLException => throw DatabaseError.Access
+      case _: SQLTimeoutException => throw DatabaseError.Timeout
+      case _: Throwable => throw ApplicationError.ExceptionError
+    }
+  }
+
   def createPoll(poll: Poll) = {
     val query =
       s"""
@@ -54,11 +65,10 @@ object DataAdapter extends LazyLogging {
         |)
       """.stripMargin
     logger.info(query)
-    val statement = getConnection.createStatement
-    val numRows = statement.executeUpdate(query)
+    val numRows = executeUpdateQuery(query)
     if (numRows != 1) {
       logger.error("failed to insert " + query)
-      -1
+      throw DatabaseError.ConstraintViolation
     }
     else {
       logger.info("poll.p.id: " + poll.p.id)
@@ -66,7 +76,7 @@ object DataAdapter extends LazyLogging {
     }
   }
 
-  def getPoll(id: String) = {
+  def getPoll(id: String):mutable.Map[String, Any] = {
     val query =
       s"""
          |SELECT
@@ -76,11 +86,11 @@ object DataAdapter extends LazyLogging {
          | WHERE id = '$id'
       """.stripMargin
     logger.info(query)
-    val statement = getConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)
-    val rs: ResultSet = statement.executeQuery(query)
+    val rs: ResultSet =
+      getConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY).executeQuery(query)
     if (!rs.first()) {
       logger.error("failed to retrieve using: " + query)
-      -1
+      throw DatabaseError.RecordNotFound
     }
     else {
       val md = rs.getMetaData
@@ -109,6 +119,18 @@ object DataAdapter extends LazyLogging {
     getConnection.createStatement().executeUpdate(query)
   }
   def deletePoll(id: String): Int = {
-    getConnection.createStatement().executeUpdate("DELETE FROM polls WHERE id = '" + id + "'")
+    executeUpdateQuery(s"DELETE FROM polls WHERE id = '$id'")
+  }
+  def closePoll(poll:Poll): Int = {
+    val newClosingTS = new Date()
+    val query =
+      s"""
+         |UPDATE nldb.polls
+         |SET
+         |   closing_ts = '${newClosingTS.toInstant.toString.replace('T', ' ').dropRight(1)}'
+         |WHERE id = '${poll.p.id.get}'
+      """.stripMargin
+    logger.info(query)
+    getConnection.createStatement().executeUpdate(query)
   }
 }
