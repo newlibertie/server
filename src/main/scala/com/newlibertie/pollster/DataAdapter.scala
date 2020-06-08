@@ -1,6 +1,7 @@
 package com.newlibertie.pollster
 
 import java.sql.{Connection, DriverManager, ResultSet, SQLException, SQLTimeoutException}
+import java.util.Date
 
 import com.newlibertie.pollster.errorenum.{ApplicationError, DatabaseError}
 import com.newlibertie.pollster.impl.Poll
@@ -119,5 +120,17 @@ object DataAdapter extends LazyLogging {
   }
   def deletePoll(id: String): Int = {
     executeUpdateQuery(s"DELETE FROM polls WHERE id = '$id'")
+  }
+  def closePoll(poll:Poll): Int = {
+    val newClosingTS = new Date()
+    val query =
+      s"""
+         |UPDATE nldb.polls
+         |SET
+         |   closing_ts = '${newClosingTS.toInstant.toString.replace('T', ' ').dropRight(1)}'
+         |WHERE id = '${poll.p.id.get}'
+      """.stripMargin
+    logger.info(query)
+    getConnection.createStatement().executeUpdate(query)
   }
 }

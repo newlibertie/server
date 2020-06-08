@@ -4,7 +4,7 @@ import akka.http.scaladsl.model.ContentTypes._
 import akka.http.scaladsl.model.headers.`Content-Type`
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.{Route, StandardRoute}
 import com.newlibertie.pollster.errorenum.{ApplicationError, DatabaseError, DatabaseErrorEnum}
 import com.newlibertie.pollster.impl.Poll
 import com.typesafe.scalalogging.LazyLogging
@@ -30,11 +30,10 @@ object PollApi extends LazyLogging {
           }
         }
         catch {
-            case DatabaseError.RecordNotFound => complete(StatusCodes.NotFound)
-            case ApplicationError.ExceptionError => complete(StatusCodes.InternalServerError)
-            case _:Throwable => complete(StatusCodes.InternalServerError)
-          }
-       }
+          case DatabaseError.RecordNotFound => complete(StatusCodes.NotFound)
+          case ApplicationError.ExceptionError => complete(StatusCodes.InternalServerError)
+          case _: Throwable => complete(StatusCodes.InternalServerError)
+        }
       }
     } ~
     post { // Create a Poll
@@ -60,7 +59,7 @@ object PollApi extends LazyLogging {
         pollDefinition => {
           try {
             Poll(pollDefinition) match {
-              case poll:Poll => poll.update() match {
+              case poll: Poll => poll.update() match {
                 case 1 => complete(StatusCodes.OK)
                 case 0 => complete(StatusCodes.NotFound)
               }
@@ -77,42 +76,14 @@ object PollApi extends LazyLogging {
     } ~
     delete {
       parameters("id") { id: String =>
-        try {
-          Poll.read(id) match {
-            case p: Poll => if (p.canDelete()) {
-              try {
-                p.deletePoll() match {
-                  case 1 => complete(StatusCodes.OK)
-                  case 0 => complete(StatusCodes.NotFound)
-                  case _ => complete(StatusCodes.InternalServerError)
-                }
-              }
-              catch {
-                case ex: Exception =>
-                  logger.error(s"failed to delete the poll with id : $id", ex)
-                  complete(StatusCodes.InternalServerError)
-              }
-            }
-            else complete(StatusCodes.Unauthorized)
-          }
-        }
-        catch {
-          case DatabaseError.RecordNotFound => complete(StatusCodes.NotFound)
-          case ApplicationError.ExceptionError => complete(StatusCodes.InternalServerError)
-          case _:DatabaseErrorEnum#AEVal => complete(StatusCodes.BadRequest)
-          case _:Throwable => complete(StatusCodes.InternalServerError)
-        }
+        _commonCode(id, "deletePoll")
       }
-    }~
-    path("closePoll") {
-      get {
+    }
+  }~
+  path("closePoll") {
+    get {
       parameters("id") { id: String =>
-        complete(
-          m = HttpEntity(
-            ContentTypes.`application/json`,
-            "{}"
-          )
-        )
+        _commonCode(id, "closePoll")
       }
     }
   } ~
@@ -126,6 +97,33 @@ object PollApi extends LazyLogging {
           )
         )
       }
+    }
+  }
+  def _commonCode(id:String, methodName:String): StandardRoute = {
+    try {
+      Poll.read(id) match {
+        case p: Poll => if (if (methodName == "closePoll") p.canClose() else p.canDelete()) {
+          try {
+            (if (methodName == "closePoll") p.closePoll() else p.deletePoll()) match {
+              case 1 => complete(StatusCodes.OK)
+              case 0 => complete(StatusCodes.NotFound)
+              case _ => complete(StatusCodes.InternalServerError)
+            }
+          }
+          catch {
+            case ex: Exception =>
+              logger.error(s"failed to delete the poll with id : $id", ex)
+              complete(StatusCodes.InternalServerError)
+          }
+        }
+        else complete(StatusCodes.Unauthorized)
+      }
+    }
+    catch {
+      case DatabaseError.RecordNotFound => complete(StatusCodes.NotFound)
+      case ApplicationError.ExceptionError => complete(StatusCodes.InternalServerError)
+      case _: DatabaseErrorEnum#AEVal => complete(StatusCodes.BadRequest)
+      case _: Throwable => complete(StatusCodes.InternalServerError)
     }
   }
 }

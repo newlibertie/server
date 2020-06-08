@@ -45,7 +45,7 @@ class PollApiSpec extends WordSpec with Matchers with ScalatestRouteTest with La
       }
     }
 
-    "support poll get create update delete " in {
+    "support poll get create update close delete " in {
       // first create a new Poll, use its id to retrieve it back
       val pollDefinitionStr = """
       |{
@@ -82,11 +82,14 @@ class PollApiSpec extends WordSpec with Matchers with ScalatestRouteTest with La
           |  "tags":["abacadabra3", "abacadabra4"],
           |  "creator_id":"abacadabra",
           |  "opening_ts": "2019-08-01T02:51:00Z" ,
-          |  "closing_ts": "2019-10-01T02:51:00Z" ,
+          |  "closing_ts": "2020-10-01T02:51:00Z" ,
           |  "poll_type":"MULTIPLE_CHOICE",
           |  "poll_spec":"abacadabra-updated"
           |}
         """.stripMargin) ~> Route.seal(PollApi.routes) ~> check {
+        status shouldEqual StatusCodes.OK
+      }
+      Get(s"/closePoll?id=$pollId") ~> Route.seal(PollApi.routes) ~> check {
         status shouldEqual StatusCodes.OK
       }
       // test the delete success case with the pollId of the created Poll

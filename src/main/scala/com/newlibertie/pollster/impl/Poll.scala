@@ -63,7 +63,7 @@ object Poll extends LazyLogging {
     }
     catch {
       case DatabaseError.RecordNotFound => throw DatabaseError.RecordNotFound
-      case _ => throw ApplicationError.Unknown
+      case _: Throwable => throw ApplicationError.Unknown
     }
   }
 }
@@ -91,5 +91,8 @@ class Poll(val p:PollParameters, val cp:CryptographicParameters = new Cryptograp
   def toJsonString: String = {
     val sb  = new StringBuilder("{")
     sb.append(p.getKeyValueSequenceString).append(",").append(cp.getPublicKeyValueString).append("}").toString()
+  }
+  def closePoll(): Int = {
+    DataAdapter.closePoll(this)
   }
 }
