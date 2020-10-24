@@ -164,6 +164,7 @@ class Ballot(cp:CryptographicParameters, voter:String) {
          |""".stripMargin
     // TODO : fix
     // java.lang.ArithmeticException: BigInteger not invertible.
+    // TODO : Drill why there is an invertibility question here.  these are just mod pow and remainders
     // if(!cp.generator_g.modPow(r2, cp.large_prime_p).multiply(x.modPow(d2, cp.large_prime_p)).mod(cp.large_prime_p).equals(a2))
     //  return false
 
