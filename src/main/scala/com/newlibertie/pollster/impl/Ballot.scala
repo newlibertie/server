@@ -43,8 +43,8 @@ class Ballot(cp:CryptographicParameters, voter:String) {
     //    a2   g ^ omega      OR  g ^ {r2} x ^ {d2}
     //    b2   h ^ omega      OR  h ^ {r2} (y/G)^{d2}
 
-    val alpha = CryptographicParameters.random()
-    val omega = CryptographicParameters.random()
+    val alpha = CryptographicParameters.random().mod(cp.large_prime_p)
+    val omega = CryptographicParameters.random().mod(cp.large_prime_p)
 
     this.x = cp.generator_g.modPow(alpha, cp.large_prime_p)
     this.y = if (vote)
@@ -58,7 +58,7 @@ class Ballot(cp:CryptographicParameters, voter:String) {
     this.r2 = CryptographicParameters.random()
 
     if (vote) { // is positive vote
-      this.d1 = CryptographicParameters.random(511)    // we will use SHA-512 for zkp
+      this.d1 = CryptographicParameters.random(511)   // we will use SHA-512 for zkp
       this.a1 = cp.generator_g.modPow(r1, cp.large_prime_p)
         .multiply(x.modPow(d1, cp.large_prime_p))
         .mod(cp.large_prime_p)
@@ -70,7 +70,8 @@ class Ballot(cp:CryptographicParameters, voter:String) {
       this.d2 = getC().subtract(this.d1)
     }
     else { // vote is negative
-      this.d2 = CryptographicParameters.random(511)
+      val c = getC()
+      this.d2 = CryptographicParameters.random(511).mod(cp.large_prime_p)
       this.a1 = cp.generator_g.modPow(omega, cp.large_prime_p)
       this.b1 = cp.public_key_h.modPow(omega, cp.large_prime_p)
       this.a2 = cp.generator_g.modPow(r2, cp.large_prime_p)
@@ -79,7 +80,7 @@ class Ballot(cp:CryptographicParameters, voter:String) {
       this.b2 = cp.public_key_h.modPow(r2, cp.large_prime_p)
         .multiply(cp.zkp_generator_G.modInverse(cp.large_prime_p).multiply(y).modPow(d2, cp.large_prime_p))
         .mod(cp.large_prime_p)
-      this.d1 = getC().subtract(this.d2)
+      this.d1 = c.subtract(this.d2)
     }
   }
 
@@ -112,6 +113,7 @@ class Ballot(cp:CryptographicParameters, voter:String) {
     * ZKP Verify integrity of the ballot
     */
   def verify(_outBuffer:ListBuffer[String]=null): Boolean = {
+    // TODO : fix design-ish issue.  why we would allowed 
     val outBuffer = if(_outBuffer == null)
       new ListBuffer[String]()
     else
@@ -162,11 +164,11 @@ class Ballot(cp:CryptographicParameters, voter:String) {
          |d2=${this.d2}
          |a2 = g^r2 x^d2 ?\n
          |""".stripMargin
-    // TODO : fix
+    // TODO : fix*
     // java.lang.ArithmeticException: BigInteger not invertible.
     // TODO : Drill why there is an invertibility question here.  these are just mod pow and remainders
-    // if(!cp.generator_g.modPow(r2, cp.large_prime_p).multiply(x.modPow(d2, cp.large_prime_p)).mod(cp.large_prime_p).equals(a2))
-    //  return false
+    if(!cp.generator_g.modPow(r2, cp.large_prime_p).multiply(x.modPow(d2, cp.large_prime_p)).mod(cp.large_prime_p).equals(a2))
+      return false
 
     outBuffer +=
       s"""b2=${this.b2}
@@ -183,6 +185,7 @@ class Ballot(cp:CryptographicParameters, voter:String) {
     //  return false
 
 
+    println(outBuffer.toString())
     println("done")
     true
   }
