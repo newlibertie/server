@@ -45,6 +45,9 @@ class Ballot(cp:CryptographicParameters, voter:String) {
 
     val alpha = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
     val omega = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
+      // TODO : insecure, delete please
+    println(s"alpha is ${alpha}")
+    println(s"omega is ${omega}")
 
     this.x = cp.generator_g.modPow(alpha, cp.large_prime_p)
     this.y = if (vote) {
@@ -52,14 +55,12 @@ class Ballot(cp:CryptographicParameters, voter:String) {
     } else {
       cp.public_key_h.modPow(alpha, cp.large_prime_p).multiply(
         cp.zkp_generator_G.modInverse(cp.large_prime_p)
-      )
+      ).mod(cp.large_prime_p)
     }
 
-    val c = getC()
-
     if (vote) { // is positive vote
-      this.d1 = CryptographicParameters.random(CryptographicParameters.BITS)   // TODO : adjust and check if "we will use SHA-512 for zkp" can work with c = d1 + d2
-      this.r1 = CryptographicParameters.random(CryptographicParameters.BITS)
+      this.d1 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)   // TODO : adjust and check if "we will use SHA-512 for zkp" can work with c = d1 + d2
+      this.r1 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
       this.a1 = cp.generator_g.modPow(r1, cp.large_prime_p)
         .multiply(x.modPow(d1, cp.large_prime_p))
         .mod(cp.large_prime_p)
@@ -68,12 +69,13 @@ class Ballot(cp:CryptographicParameters, voter:String) {
         .mod(cp.large_prime_p)
       this.a2 = cp.generator_g.modPow(omega, cp.large_prime_p)
       this.b2 = cp.public_key_h.modPow(omega, cp.large_prime_p)
-      this.d2 = c.subtract(this.d1)
-      this.r2 = omega.subtract(alpha.modPow(this.d2, cp.large_prime_p))
+      val c = getC()
+      this.d2 = c.subtract(this.d1).mod(cp.large_prime_p)
+      this.r2 = omega.subtract(alpha.multiply(this.d2)).mod(cp.large_prime_p)
     }
     else { // vote is negative
       this.d2 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
-      this.r2 = CryptographicParameters.random(CryptographicParameters.BITS)
+      this.r2 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
       this.a1 = cp.generator_g.modPow(omega, cp.large_prime_p)
       this.b1 = cp.public_key_h.modPow(omega, cp.large_prime_p)
       this.a2 = cp.generator_g.modPow(r2, cp.large_prime_p)
@@ -82,8 +84,9 @@ class Ballot(cp:CryptographicParameters, voter:String) {
       this.b2 = cp.public_key_h.modPow(r2, cp.large_prime_p)
         .multiply(cp.zkp_generator_G.modInverse(cp.large_prime_p).multiply(y).modPow(d2, cp.large_prime_p))
         .mod(cp.large_prime_p)
-      this.d1 = c.subtract(this.d2)
-      this.r1 = omega.subtract(alpha.modPow(this.d1, cp.large_prime_p))
+      val c = getC()
+      this.d1 = c.subtract(this.d2).mod(cp.large_prime_p)
+      this.r1 = omega.subtract(alpha.multiply(this.d1)).mod(cp.large_prime_p)
     }
   }
 
@@ -108,7 +111,8 @@ class Ballot(cp:CryptographicParameters, voter:String) {
       |b2=${this.b2}
       |""".stripMargin
     val shaBin = java.security.MessageDigest.getInstance("SHA-512").digest(s.getBytes("utf-8"))
-    new BigInteger(1, shaBin)
+    println(s"string to hash ${s} -> ${new BigInteger(1, shaBin).toString}")
+    new BigInteger(1, shaBin).mod(cp.large_prime_p)
   }
 
 
@@ -128,61 +132,73 @@ class Ballot(cp:CryptographicParameters, voter:String) {
          |C = d1 + d2 ?\n
          |""".stripMargin
 
-    val c = getC()
-    if(!c.equals(this.d1.add(this.d2)))
-      return false
+    try {
+      val c = getC().mod(cp.large_prime_p)
+      val shouldBec = this.d1.add(this.d2).mod(cp.large_prime_p)
+      if (!c.equals(shouldBec))
+        return false
 
-    outBuffer +=
-      s"""a1=${this.a1}
-         |g=${cp.generator_g}
-         |r1=${this.r1}
-         |x=${this.x}
-         |d1=${this.d1}
-         |a1 = g^r1 . x ^ d1 ?\n
-         |""".stripMargin
-    if(!cp.generator_g.modPow(r1, cp.large_prime_p).multiply(x.modPow(d1, cp.large_prime_p)).mod(cp.large_prime_p).equals(a1))
-      return false
+      outBuffer +=
+        s"""a1=${this.a1}
+           |g=${cp.generator_g}
+           |r1=${this.r1}
+           |x=${this.x}
+           |d1=${this.d1}
+           |a1 = g^r1 . x ^ d1 ?\n
+           |""".stripMargin
+      if (!cp.generator_g.modPow(r1, cp.large_prime_p).multiply(x.modPow(d1, cp.large_prime_p)).mod(cp.large_prime_p).equals(a1))
+        return false
 
-    outBuffer +=
-      s"""b1=${this.b1}
-         |h=${cp.public_key_h}
-         |r1=${this.r1}
-         |y=${this.y}
-         |G=${cp.zkp_generator_G}
-         |d1=${this.d1}
-         |b1 = h^r1 (yG)^d1 ?\n
-         |""".stripMargin
-    val yG = y.multiply(cp.zkp_generator_G)
-    if(!cp.public_key_h.modPow(r1, cp.large_prime_p).multiply(
+      outBuffer +=
+        s"""b1=${this.b1}
+           |h=${cp.public_key_h}
+           |r1=${this.r1}
+           |y=${this.y}
+           |G=${cp.zkp_generator_G}
+           |d1=${this.d1}
+           |b1 = h^r1 (yG)^d1 ?\n
+           |""".stripMargin
+      val yG = y.multiply(cp.zkp_generator_G)
+      if (!cp.public_key_h.modPow(r1, cp.large_prime_p).multiply(
         yG.modPow(d1, cp.large_prime_p)).mod(cp.large_prime_p).equals(b1))
-      return false
+        return false
 
-    outBuffer +=
-      s"""a2=${this.a2}
-         |g=${cp.generator_g}
-         |r2=${this.r2}
-         |x=${this.x}
-         |d2=${this.d2}
-         |a2 = g^r2 x^d2 ?\n
-         |""".stripMargin
-    if(!cp.generator_g.modPow(r2, cp.large_prime_p).multiply(x.modPow(d2, cp.large_prime_p)).mod(cp.large_prime_p).equals(a2))
-      return false
+      outBuffer +=
+        s"""a2=${this.a2}
+           |g=${cp.generator_g}
+           |r2=${this.r2}
+           |x=${this.x}
+           |d2=${this.d2}
+           |a2 = g^r2 x^d2 ?\n
+           |""".stripMargin
+      val gr2 = cp.generator_g.modPow(r2, cp.large_prime_p)
+      val xd2 = x.modPow(d2, cp.large_prime_p)
+      val shouldBea2 = gr2.multiply(xd2).mod(cp.large_prime_p)
+      if (!shouldBea2.equals(a2))
+        return false
 
-    outBuffer +=
-      s"""b2=${this.b2}
-         |h=${cp.public_key_h}
-         |r2=${this.r2}
-         |y=${this.y}
-         |G=${cp.zkp_generator_G}
-         |d2=${this.d2}
-         |b2 = h^r2 (y/G)^d2 ?\n
-         |""".stripMargin
-    val yByG = y.modInverse(cp.zkp_generator_G)
-    if(!cp.public_key_h.modPow(r2, cp.large_prime_p).multiply(
-      yByG.modPow(d2, cp.large_prime_p)).mod(cp.large_prime_p).equals(b2))
-      return false
-    //println(outBuffer.toString())
-    //println("done")
-    true
+      outBuffer +=
+        s"""b2=${this.b2}
+           |h=${cp.public_key_h}
+           |r2=${this.r2}
+           |y=${this.y}
+           |G=${cp.zkp_generator_G}
+           |d2=${this.d2}
+           |b2 = h^r2 (y/G)^d2 ?\n
+           |""".stripMargin
+      val yByG = y.modInverse(cp.zkp_generator_G)
+      if (!cp.public_key_h.modPow(r2, cp.large_prime_p).multiply(
+        yByG.modPow(d2, cp.large_prime_p)).mod(cp.large_prime_p).equals(b2))
+        return false
+      //println(outBuffer.toString())
+      //println("done")
+      true
+    }
+    catch {
+      case ex : Throwable => {
+        println(s"Failed to verify because of exception ${ex.toString}")
+        false
+      }
+    }
   }
 }
