@@ -85,3 +85,5 @@ project/plugins/project/
 
 # adapted from https://www.gitignore.io/api/playframework,sbt,eclipse,intellij,scala,osx
 
+
+.gradle/
