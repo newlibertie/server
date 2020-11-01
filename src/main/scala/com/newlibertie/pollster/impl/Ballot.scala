@@ -43,22 +43,23 @@ class Ballot(cp:CryptographicParameters, voter:String) {
     //    a2   g ^ omega      OR  g ^ {r2} x ^ {d2}
     //    b2   h ^ omega      OR  h ^ {r2} (y/G)^{d2}
 
-    val alpha = CryptographicParameters.random().mod(cp.large_prime_p)
-    val omega = CryptographicParameters.random().mod(cp.large_prime_p)
+    val alpha = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
+    val omega = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
 
     this.x = cp.generator_g.modPow(alpha, cp.large_prime_p)
-    this.y = if (vote)
+    this.y = if (vote) {
       cp.public_key_h.modPow(alpha, cp.large_prime_p).multiply(cp.zkp_generator_G).mod(cp.large_prime_p)
-    else
+    } else {
       cp.public_key_h.modPow(alpha, cp.large_prime_p).multiply(
         cp.zkp_generator_G.modInverse(cp.large_prime_p)
       )
+    }
 
-    this.r1 = CryptographicParameters.random()
-    this.r2 = CryptographicParameters.random()
+    val c = getC()
 
     if (vote) { // is positive vote
-      this.d1 = CryptographicParameters.random(511)   // we will use SHA-512 for zkp
+      this.d1 = CryptographicParameters.random(CryptographicParameters.BITS)   // TODO : adjust and check if "we will use SHA-512 for zkp" can work with c = d1 + d2
+      this.r1 = CryptographicParameters.random(CryptographicParameters.BITS)
       this.a1 = cp.generator_g.modPow(r1, cp.large_prime_p)
         .multiply(x.modPow(d1, cp.large_prime_p))
         .mod(cp.large_prime_p)
@@ -67,11 +68,12 @@ class Ballot(cp:CryptographicParameters, voter:String) {
         .mod(cp.large_prime_p)
       this.a2 = cp.generator_g.modPow(omega, cp.large_prime_p)
       this.b2 = cp.public_key_h.modPow(omega, cp.large_prime_p)
-      this.d2 = getC().subtract(this.d1)
+      this.d2 = c.subtract(this.d1)
+      this.r2 = omega.subtract(alpha.modPow(this.d2, cp.large_prime_p))
     }
     else { // vote is negative
-      val c = getC()
-      this.d2 = CryptographicParameters.random(511).mod(cp.large_prime_p)
+      this.d2 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
+      this.r2 = CryptographicParameters.random(CryptographicParameters.BITS)
       this.a1 = cp.generator_g.modPow(omega, cp.large_prime_p)
       this.b1 = cp.public_key_h.modPow(omega, cp.large_prime_p)
       this.a2 = cp.generator_g.modPow(r2, cp.large_prime_p)
@@ -81,6 +83,7 @@ class Ballot(cp:CryptographicParameters, voter:String) {
         .multiply(cp.zkp_generator_G.modInverse(cp.large_prime_p).multiply(y).modPow(d2, cp.large_prime_p))
         .mod(cp.large_prime_p)
       this.d1 = c.subtract(this.d2)
+      this.r1 = omega.subtract(alpha.modPow(this.d1, cp.large_prime_p))
     }
   }
 
@@ -124,11 +127,9 @@ class Ballot(cp:CryptographicParameters, voter:String) {
          |d2=${this.d2}
          |C = d1 + d2 ?\n
          |""".stripMargin
-    if(!getC().equals(
-      this.d1.add(
-        this.d2
-      )
-    ))
+
+    val c = getC()
+    if(!c.equals(this.d1.add(this.d2)))
       return false
 
     outBuffer +=
@@ -164,9 +165,6 @@ class Ballot(cp:CryptographicParameters, voter:String) {
          |d2=${this.d2}
          |a2 = g^r2 x^d2 ?\n
          |""".stripMargin
-    // TODO : fix*
-    // java.lang.ArithmeticException: BigInteger not invertible.
-    // TODO : Drill why there is an invertibility question here.  these are just mod pow and remainders
     if(!cp.generator_g.modPow(r2, cp.large_prime_p).multiply(x.modPow(d2, cp.large_prime_p)).mod(cp.large_prime_p).equals(a2))
       return false
 
@@ -179,14 +177,12 @@ class Ballot(cp:CryptographicParameters, voter:String) {
          |d2=${this.d2}
          |b2 = h^r2 (y/G)^d2 ?\n
          |""".stripMargin
-    //val yByG = y.modInverse(cp.zkp_generator_G)
-    //if(!cp.public_key_h.modPow(r2, cp.large_prime_p).multiply(
-    //  yByG.modPow(d2, cp.large_prime_p)).mod(cp.large_prime_p).equals(b2))
-    //  return false
-
-
-    println(outBuffer.toString())
-    println("done")
+    val yByG = y.modInverse(cp.zkp_generator_G)
+    if(!cp.public_key_h.modPow(r2, cp.large_prime_p).multiply(
+      yByG.modPow(d2, cp.large_prime_p)).mod(cp.large_prime_p).equals(b2))
+      return false
+    //println(outBuffer.toString())
+    //println("done")
     true
   }
 }

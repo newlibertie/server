@@ -25,11 +25,19 @@ class BallotSpec extends FlatSpec with Matchers {
       |}
       """.stripMargin)
 
-  "Ballot" should "have x and y" in {
+  "Ballot" should "pass verification for positive vote" in {
     val b = new Ballot(p.cp, "test-voter")
     b.cast(true)
     val transcript = ListBuffer[String]();
-    b.verify(transcript)   // shouldBe true
+    b.verify(transcript) shouldBe true
+    transcript.foreach(line => println(line))
+  }
+
+  "Ballot" should "pass verification for negative vote" in {
+    val b = new Ballot(p.cp, "test-voter")
+    b.cast(false)
+    val transcript = ListBuffer[String]();
+    b.verify(transcript) shouldBe true
     transcript.foreach(line => println(line))
   }
 }
