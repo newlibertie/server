@@ -1,6 +1,6 @@
 package com.newlibertie.pollster.impl
 
-import java.math.BigInteger
+import java.math.BigInteger    // TODO : consider java
 
 import scala.collection.mutable.ListBuffer
 
