@@ -175,7 +175,7 @@ class Ballot(cp:CryptographicParameters, voter:String) {
       val xd2 = x.modPow(d2, cp.large_prime_p)
       val shouldBea2 = gr2.multiply(xd2).mod(cp.large_prime_p)
       if (!shouldBea2.equals(a2))
-        return false
+        return false                        // TODO : debug using algebra proof in voting protool paper
 
       outBuffer +=
         s"""b2=${this.b2}
