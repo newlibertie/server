@@ -1,11 +1,12 @@
 package com.newlibertie.pollster.impl
 
-import java.math.BigInteger    // TODO : consider java
+import java.math.BigInteger
 
 import scala.collection.mutable.ListBuffer
+import scala.math.BigInt.javaBigInteger2bigInt
 
 /**
-  * Implementationv of ballot
+  * Implementation of ballot
   *
   * A ballot object is empty but permanently associated with a specific poll and
   * a specific voter upon construction
@@ -14,16 +15,17 @@ import scala.collection.mutable.ListBuffer
   * 1. Using the cast(vote:Boolean) method to populate its internal fields, or
   * 2. Instantiate it from pre-computed fields.  In this scenario, the implementation
   * will verify the ballot as can anyway be done using the verify() method.
-  * @param parameters cryptographic parameters of the poll this ballot is about
+  * @param cp cryptographic parameters of the poll this ballot is about
   * @param voter String identifier identifying the voter
   */
 class Ballot(cp:CryptographicParameters, voter:String) {
 
-  var x,y :BigInteger = null
+  var x,y :BigInteger = _
 
-  var a1, b1, a2, b2 :BigInteger = null
+  var a1, b1, a2, b2 :BigInteger = _
 
-  var d1, d2, r1, r2 :BigInteger = null
+  var d1, d2, r1, r2 :BigInteger = _
+  var c_val:BigInteger = _
 
   /**
     * Cast a vote - populates all parameters to become a verifiable ballot
@@ -33,7 +35,7 @@ class Ballot(cp:CryptographicParameters, voter:String) {
     // TODO: also save the metadata - where this ballot was casted, what UTC ts,
     // TODO: etc - that can serve other purposes when aggregated at scale)
 
-  def cast(vote:Boolean) = {
+  def cast(vote:Boolean): Unit = {
     // Voter votes m^0 or m^1
     // Ballot is a tuple (x,y,a1,b1,a2,b2)
     //    x    g^alpha,
@@ -43,11 +45,14 @@ class Ballot(cp:CryptographicParameters, voter:String) {
     //    a2   g ^ omega      OR  g ^ {r2} x ^ {d2}
     //    b2   h ^ omega      OR  h ^ {r2} (y/G)^{d2}
 
-    val alpha = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
-    val omega = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
+//    val alpha = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
+//    val omega = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)  //.add(cp.large_prime_p).add(cp.generator_g)
       // TODO : insecure, delete please
-    println(s"alpha is ${alpha}")
-    println(s"omega is ${omega}")
+    val alpha = new BigInteger("11")
+//    val omega = new BigInteger("127")
+    val omega = new BigInteger("8521")
+    println(s"alpha is $alpha")
+    println(s"omega is $omega")
 
     this.x = cp.generator_g.modPow(alpha, cp.large_prime_p)
     this.y = if (vote) {
@@ -58,9 +63,12 @@ class Ballot(cp:CryptographicParameters, voter:String) {
       ).mod(cp.large_prime_p)
     }
 
+    val c = getC  //()
     if (vote) { // is positive vote
-      this.d1 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)   // TODO : adjust and check if "we will use SHA-512 for zkp" can work with c = d1 + d2
-      this.r1 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
+//      this.d1 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)   // TODO : adjust and check if "we will use SHA-512 for zkp" can work with c = d1 + d2
+//      this.r1 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
+      this.d1 = new BigInteger("20")
+      this.r1 = new BigInteger("10")
       this.a1 = cp.generator_g.modPow(r1, cp.large_prime_p)
         .multiply(x.modPow(d1, cp.large_prime_p))
         .mod(cp.large_prime_p)
@@ -69,28 +77,43 @@ class Ballot(cp:CryptographicParameters, voter:String) {
         .mod(cp.large_prime_p)
       this.a2 = cp.generator_g.modPow(omega, cp.large_prime_p)
       this.b2 = cp.public_key_h.modPow(omega, cp.large_prime_p)
-      val c = getC()
-      this.d2 = c.subtract(this.d1).mod(cp.large_prime_p)
-      this.r2 = omega.subtract(alpha.multiply(this.d2)).mod(cp.large_prime_p)
+      //val c = getC  //()
+      this.d2 = c.subtract(this.d1) //.mod(cp.large_prime_p)
+      this.r2 = omega.subtract(alpha.multiply(this.d2).mod(cp.large_prime_p))
     }
     else { // vote is negative
-      this.d2 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
-      this.r2 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
+//      this.d2 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
+//      this.r2 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
+      this.d2 = new BigInteger("10")
+      this.r2 = new BigInteger("13")
       this.a1 = cp.generator_g.modPow(omega, cp.large_prime_p)
       this.b1 = cp.public_key_h.modPow(omega, cp.large_prime_p)
       this.a2 = cp.generator_g.modPow(r2, cp.large_prime_p)
         .multiply(x.modPow(d2, cp.large_prime_p))
         .mod(cp.large_prime_p)
-      this.b2 = cp.public_key_h.modPow(r2, cp.large_prime_p)
-        .multiply(cp.zkp_generator_G.modInverse(cp.large_prime_p).multiply(y).modPow(d2, cp.large_prime_p))
-        .mod(cp.large_prime_p)
-      val c = getC()
-      this.d1 = c.subtract(this.d2).mod(cp.large_prime_p)
-      this.r1 = omega.subtract(alpha.multiply(this.d1)).mod(cp.large_prime_p)
+//      this.b2 = cp.public_key_h.modPow(r2, cp.large_prime_p)
+//        .multiply(cp.zkp_generator_G.modInverse(cp.large_prime_p).multiply(y).modPow(d2, cp.large_prime_p))
+//        .mod(cp.large_prime_p)
+//      this.b2 = cp.public_key_h.modPow(r2, cp.large_prime_p)
+//        .multiply(y.divide(cp.zkp_generator_G).modPow(d2, cp.large_prime_p))
+//        .mod(cp.large_prime_p)
+
+      val yByG = cp.zkp_generator_G.modInverse(cp.large_prime_p).multiply(y).mod(cp.large_prime_p)
+      //      val yByG = y.divideAndRemainder(cp.zkp_generator_G)
+      //      if (!cp.public_key_h.modPow(r2, cp.large_prime_p).multiply(
+      //        yByG.modPow(d2, cp.large_prime_p)).mod(cp.large_prime_p).equals(b2))
+      //        return false
+      val hr2 = cp.public_key_h.modPow(r2, cp.large_prime_p)
+      val yByGpowd2 = yByG.modPow(d2, cp.large_prime_p)
+      val hr2yByGpowd2 = hr2.multiply(yByGpowd2).mod(cp.large_prime_p)
+      this.b2 = hr2yByGpowd2
+//      val c = getC  //()
+      this.d1 = c.subtract(this.d2) //.mod(cp.large_prime_p)
+      this.r1 = omega.subtract(alpha.multiply(this.d1).mod(cp.large_prime_p))
     }
   }
 
-  private def getC() = {
+  private def getC = {
     // take hash of <voter string, poll details>.  the hash of this content is used to calculate the
     // parameters d1 and d2 - which are used to produce the zero knowledge proof that the encrypted
     // ballot is a valid ballot for the given poll
@@ -100,21 +123,26 @@ class Ballot(cp:CryptographicParameters, voter:String) {
     // h              poll public key - which is also the identifier for the polls
     // x              some random numbers,  refer to the white paper
     //
-    val s =       // the "formula" for the content hash is same as in the while paper : H(v_i||T)
-    s"""${this.voter}
-      |h=${cp.public_key_h}
-      |x=${this.x}
-      |y=${this.y}
-      |a1=${this.a1}
-      |b1=${this.b1}
-      |a2=${this.a2}
-      |b2=${this.b2}
-      |""".stripMargin
-    val shaBin = java.security.MessageDigest.getInstance("SHA-512").digest(s.getBytes("utf-8"))
-    println(s"string to hash ${s} -> ${new BigInteger(1, shaBin).toString}")
-    new BigInteger(1, shaBin).mod(cp.large_prime_p)
+//    val s =       // the "formula" for the content hash is same as in the while paper : H(v_i||T)
+//    s"""${this.voter}
+//      |h=${cp.public_key_h}
+//      |x=${this.x}
+//      |y=${this.y}
+//      |a1=${this.a1}
+//      |b1=${this.b1}
+//      |a2=${this.a2}
+//      |b2=${this.b2}
+//      |""".stripMargin
+//    val shaBin = java.security.MessageDigest.getInstance("SHA-512").digest(s.getBytes("utf-8"))
+//    println(s"string to hash $s -> ${new BigInteger(1, shaBin).toString}")
+//    val retc = new BigInteger(1, shaBin).mod(cp.large_prime_p)
+//    retc.add(cp.large_prime_p)
+    if (c_val == null){
+      //c_val = cp.large_prime_p.shiftRight(1).add(BigInteger.ONE)
+      c_val = new BigInteger("30")
+    }
+    c_val
   }
-
 
   /**
     * ZKP Verify integrity of the ballot
@@ -126,15 +154,15 @@ class Ballot(cp:CryptographicParameters, voter:String) {
     else
       _outBuffer
     outBuffer +=
-      s"""C=${this.getC()}
+      s"""C=${this.getC/*()*/}
          |d1=${this.d1}
          |d2=${this.d2}
          |C = d1 + d2 ?\n
          |""".stripMargin
 
     try {
-      val c = getC().mod(cp.large_prime_p)
-      val shouldBec = this.d1.add(this.d2).mod(cp.large_prime_p)
+      val c = getC  //().mod(cp.large_prime_p)
+      val shouldBec = this.d1.add(this.d2)  //.mod(cp.large_prime_p)
       if (!c.equals(shouldBec))
         return false
 
@@ -175,7 +203,7 @@ class Ballot(cp:CryptographicParameters, voter:String) {
       val xd2 = x.modPow(d2, cp.large_prime_p)
       val shouldBea2 = gr2.multiply(xd2).mod(cp.large_prime_p)
       if (!shouldBea2.equals(a2))
-        return false                        // TODO : debug using algebra proof in voting protool paper
+        return false                        // TODO : debug using algebra proof in voting protocol paper
 
       outBuffer +=
         s"""b2=${this.b2}
@@ -186,19 +214,25 @@ class Ballot(cp:CryptographicParameters, voter:String) {
            |d2=${this.d2}
            |b2 = h^r2 (y/G)^d2 ?\n
            |""".stripMargin
-      val yByG = y.modInverse(cp.zkp_generator_G)
-      if (!cp.public_key_h.modPow(r2, cp.large_prime_p).multiply(
-        yByG.modPow(d2, cp.large_prime_p)).mod(cp.large_prime_p).equals(b2))
+//      val yByG = y.modInverse(cp.zkp_generator_G)
+      val yByG = cp.zkp_generator_G.modInverse(cp.large_prime_p).multiply(y).mod(cp.large_prime_p)
+//      val yByG = y.divideAndRemainder(cp.zkp_generator_G)
+//      if (!cp.public_key_h.modPow(r2, cp.large_prime_p).multiply(
+//        yByG.modPow(d2, cp.large_prime_p)).mod(cp.large_prime_p).equals(b2))
+//        return false
+      val hr2 = cp.public_key_h.modPow(r2, cp.large_prime_p)
+      val yByGpowd2 = yByG.modPow(d2, cp.large_prime_p)
+      val hr2yByGpowd2 = hr2.multiply(yByGpowd2).mod(cp.large_prime_p)
+      if (!hr2yByGpowd2.equals(b2))
         return false
       //println(outBuffer.toString())
       //println("done")
       true
     }
     catch {
-      case ex : Throwable => {
+      case ex : Throwable =>
         println(s"Failed to verify because of exception ${ex.toString}")
         false
-      }
     }
   }
 }

@@ -19,9 +19,9 @@ class BallotSpec extends FlatSpec with Matchers {
       |  "last_modification_ts": "2019-07-01T02:51:00Z" ,
       |  "poll_type":"abacadabra",
       |  "poll_spec":"abacadabra",
-      |  "p" : "123497",
-      |  "g" : "33",
-      |  "s" : "11115"
+      |  "p" : "123493",
+      |  "g" : "31",
+      |  "s" : "11113"
       |}
       """.stripMargin)
 
