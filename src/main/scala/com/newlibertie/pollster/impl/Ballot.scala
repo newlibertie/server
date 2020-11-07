@@ -3,7 +3,6 @@ package com.newlibertie.pollster.impl
 import java.math.BigInteger
 
 import scala.collection.mutable.ListBuffer
-import scala.math.BigInt.javaBigInteger2bigInt
 
 /**
   * Implementation of ballot
@@ -48,9 +47,9 @@ class Ballot(cp:CryptographicParameters, voter:String) {
 //    val alpha = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
 //    val omega = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)  //.add(cp.large_prime_p).add(cp.generator_g)
       // TODO : insecure, delete please
-    val alpha = new BigInteger("11")
-//    val omega = new BigInteger("127")
-    val omega = new BigInteger("8521")
+    val alpha = new BigInteger("500")
+    val omega = new BigInteger("123000") // it is minimum here and can be made more
+//    val omega = cp.large_prime_p.add(alpha.shiftLeft(1)).nextProbablePrime()
     println(s"alpha is $alpha")
     println(s"omega is $omega")
 
@@ -63,12 +62,12 @@ class Ballot(cp:CryptographicParameters, voter:String) {
       ).mod(cp.large_prime_p)
     }
 
-    val c = getC  //()
+    val c = getC
     if (vote) { // is positive vote
 //      this.d1 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)   // TODO : adjust and check if "we will use SHA-512 for zkp" can work with c = d1 + d2
 //      this.r1 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
-      this.d1 = new BigInteger("20")
-      this.r1 = new BigInteger("10")
+      this.d1 = new BigInteger("0")
+      this.r1 = new BigInteger("999")
       this.a1 = cp.generator_g.modPow(r1, cp.large_prime_p)
         .multiply(x.modPow(d1, cp.large_prime_p))
         .mod(cp.large_prime_p)
@@ -77,37 +76,25 @@ class Ballot(cp:CryptographicParameters, voter:String) {
         .mod(cp.large_prime_p)
       this.a2 = cp.generator_g.modPow(omega, cp.large_prime_p)
       this.b2 = cp.public_key_h.modPow(omega, cp.large_prime_p)
-      //val c = getC  //()
-      this.d2 = c.subtract(this.d1) //.mod(cp.large_prime_p)
+      this.d2 = c.subtract(this.d1)
       this.r2 = omega.subtract(alpha.multiply(this.d2).mod(cp.large_prime_p))
     }
     else { // vote is negative
 //      this.d2 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
 //      this.r2 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
-      this.d2 = new BigInteger("10")
-      this.r2 = new BigInteger("13")
+      this.d2 = new BigInteger("123")
+      this.r2 = new BigInteger("9999999999999999999")
       this.a1 = cp.generator_g.modPow(omega, cp.large_prime_p)
       this.b1 = cp.public_key_h.modPow(omega, cp.large_prime_p)
       this.a2 = cp.generator_g.modPow(r2, cp.large_prime_p)
         .multiply(x.modPow(d2, cp.large_prime_p))
         .mod(cp.large_prime_p)
-//      this.b2 = cp.public_key_h.modPow(r2, cp.large_prime_p)
-//        .multiply(cp.zkp_generator_G.modInverse(cp.large_prime_p).multiply(y).modPow(d2, cp.large_prime_p))
-//        .mod(cp.large_prime_p)
-//      this.b2 = cp.public_key_h.modPow(r2, cp.large_prime_p)
-//        .multiply(y.divide(cp.zkp_generator_G).modPow(d2, cp.large_prime_p))
-//        .mod(cp.large_prime_p)
 
       val yByG = cp.zkp_generator_G.modInverse(cp.large_prime_p).multiply(y).mod(cp.large_prime_p)
-      //      val yByG = y.divideAndRemainder(cp.zkp_generator_G)
-      //      if (!cp.public_key_h.modPow(r2, cp.large_prime_p).multiply(
-      //        yByG.modPow(d2, cp.large_prime_p)).mod(cp.large_prime_p).equals(b2))
-      //        return false
       val hr2 = cp.public_key_h.modPow(r2, cp.large_prime_p)
       val yByGpowd2 = yByG.modPow(d2, cp.large_prime_p)
       val hr2yByGpowd2 = hr2.multiply(yByGpowd2).mod(cp.large_prime_p)
       this.b2 = hr2yByGpowd2
-//      val c = getC  //()
       this.d1 = c.subtract(this.d2) //.mod(cp.large_prime_p)
       this.r1 = omega.subtract(alpha.multiply(this.d1).mod(cp.large_prime_p))
     }
@@ -139,7 +126,7 @@ class Ballot(cp:CryptographicParameters, voter:String) {
 //    retc.add(cp.large_prime_p)
     if (c_val == null){
       //c_val = cp.large_prime_p.shiftRight(1).add(BigInteger.ONE)
-      c_val = new BigInteger("30")
+      c_val = new BigInteger("246")
     }
     c_val
   }
@@ -161,8 +148,8 @@ class Ballot(cp:CryptographicParameters, voter:String) {
          |""".stripMargin
 
     try {
-      val c = getC  //().mod(cp.large_prime_p)
-      val shouldBec = this.d1.add(this.d2)  //.mod(cp.large_prime_p)
+      val c = getC
+      val shouldBec = this.d1.add(this.d2)
       if (!c.equals(shouldBec))
         return false
 
@@ -214,12 +201,8 @@ class Ballot(cp:CryptographicParameters, voter:String) {
            |d2=${this.d2}
            |b2 = h^r2 (y/G)^d2 ?\n
            |""".stripMargin
-//      val yByG = y.modInverse(cp.zkp_generator_G)
+
       val yByG = cp.zkp_generator_G.modInverse(cp.large_prime_p).multiply(y).mod(cp.large_prime_p)
-//      val yByG = y.divideAndRemainder(cp.zkp_generator_G)
-//      if (!cp.public_key_h.modPow(r2, cp.large_prime_p).multiply(
-//        yByG.modPow(d2, cp.large_prime_p)).mod(cp.large_prime_p).equals(b2))
-//        return false
       val hr2 = cp.public_key_h.modPow(r2, cp.large_prime_p)
       val yByGpowd2 = yByG.modPow(d2, cp.large_prime_p)
       val hr2yByGpowd2 = hr2.multiply(yByGpowd2).mod(cp.large_prime_p)
