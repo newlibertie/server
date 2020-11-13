@@ -48,11 +48,11 @@ class Ballot(cp:CryptographicParameters, voter:String) {
     val alpha = if (isdbg)
       new BigInteger("11774")
     else
-      CryptographicParameters.random(CryptographicParameters.BITS/2).mod(cp.large_prime_p)
+      CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
     this.c_val = if (isdbg)
       new BigInteger("257600")
     else
-      cp.large_prime_p.divide(alpha).subtract(BigInteger.ONE)
+      CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
 
     // TODO : insecure, delete please
     println(s"voter\t${this.voter}")
@@ -64,12 +64,12 @@ class Ballot(cp:CryptographicParameters, voter:String) {
       this.d1 = if (isdbg)
         new BigInteger("63832")
       else
-        CryptographicParameters.random(CryptographicParameters.BITS/2).mod(this.c_val)   // TODO : adjust and check if "we will use SHA-512 for zkp" can work with c = d1 + d2
+        CryptographicParameters.random(CryptographicParameters.BITS).mod(this.c_val)   // TODO : adjust and check if "we will use SHA-512 for zkp" can work with c = d1 + d2
       this.d2 = this.c_val.subtract(this.d1)
       val omega = if (isdbg)
         new BigInteger("2281424433")
       else
-        alpha.multiply(this.d1.max(this.d2)).add(BigInteger.ONE)
+        this.c_val.multiply(alpha)  //.mod(cp.large_prime_p)
       println(s"omega\t$omega")
       this.r1 = if (isdbg)
         new BigInteger("123456")
@@ -92,13 +92,12 @@ class Ballot(cp:CryptographicParameters, voter:String) {
       this.d2 = if (isdbg)
         new BigInteger("193768")
       else
-        CryptographicParameters.random(CryptographicParameters.BITS).mod(this.c_val)
+        CryptographicParameters.random(CryptographicParameters.BITS).mod(this.c_val)   // TODO : adjust and check if "we will use SHA-512 for zkp" can work with c = d1 + d2
       this.d1 = this.c_val.subtract(this.d2)
       val omega = if (isdbg)
         new BigInteger("2281424433")
       else
-        alpha.multiply(this.d1.max(this.d2)).add(BigInteger.ONE)
-
+        this.c_val.multiply(alpha)  //.mod(cp.large_prime_p)
       println(s"omega\t$omega")
       this.r2 = if (isdbg)
         new BigInteger("123456")
