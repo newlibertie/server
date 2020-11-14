@@ -7,7 +7,7 @@ object CryptographicParameters {
   import java.security.SecureRandom;
   private val rng = new SecureRandom()
 
-  def probablePrime() = BigInteger.probablePrime(BITS, rng)
+  def probablePrime(): BigInteger = BigInteger.probablePrime(BITS, rng)
 
   def random(bits:Int = BITS) = new BigInteger(bits, rng)
 
@@ -23,7 +23,7 @@ case class CryptographicParameters
 )
 {
   val zkp_generator_G:BigInteger = CryptographicParameters.random().mod(large_prime_p)
-  val public_key_h = generator_g.modPow(private_key_s, large_prime_p)
+  val public_key_h: BigInteger = generator_g.modPow(private_key_s, large_prime_p)
 }
 
 
