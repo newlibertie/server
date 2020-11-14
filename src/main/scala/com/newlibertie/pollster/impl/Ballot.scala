@@ -107,6 +107,22 @@ class Ballot(cp:CryptographicParameters, voter:String) {
 //      this.r1 = omega.subtract(alpha.multiply(this.d1).mod(cp.large_prime_p))
       this.r1 = omega.subtract(alpha.multiply(this.d1).mod(omega))
     }
+    println(s"large_prime_p\t${this.cp.large_prime_p}")
+    println(s"generator_g\t${this.cp.generator_g}")
+    println(s"private_key_s\t${this.cp.private_key_s}")
+    println(s"public_key_h\t${this.cp.public_key_h}")
+    println(s"zkp_generator_G\t${this.cp.zkp_generator_G}")
+    println(s"a1\t${this.a1}")
+    println(s"a2\t${this.a2}")
+    println(s"b1\t${this.b1}")
+    println(s"b2\t${this.b2}")
+    println(s"c_val\t${this.getC}")
+    println(s"d1\t${this.d1}")
+    println(s"d2\t${this.d2}")
+    println(s"r1\t${this.r1}")
+    println(s"r2\t${this.r2}")
+    println(s"x\t${this.x}")
+    println(s"y\t${this.y}")
   }
 
   private def getC = {
@@ -167,8 +183,13 @@ class Ballot(cp:CryptographicParameters, voter:String) {
            |d1=${this.d1}
            |a1 = g^r1 . x ^ d1 ?\n
            |""".stripMargin
-      if (!cp.generator_g.modPow(r1, cp.large_prime_p).multiply(x.modPow(d1, cp.large_prime_p)).mod(cp.large_prime_p).equals(a1))
+      println(s"gpowr1\t$gpowr1")
+      println(s"xpowd1\t$xpowd1")
+      println(s"prod\t$prod")
+      if (!cp.generator_g.modPow(r1, cp.large_prime_p).multiply(x.modPow(d1, cp.large_prime_p)).mod(cp.large_prime_p).equals(a1)) {
+        println(s"a1 != prod")
         return false
+      }
 
       outBuffer +=
         s"""b1=${this.b1}
@@ -195,8 +216,13 @@ class Ballot(cp:CryptographicParameters, voter:String) {
       val gr2 = cp.generator_g.modPow(r2, cp.large_prime_p)
       val xd2 = x.modPow(d2, cp.large_prime_p)
       val shouldBea2 = gr2.multiply(xd2).mod(cp.large_prime_p)
-      if (!shouldBea2.equals(a2))
-        return false                        // TODO : debug using algebra proof in voting protocol paper
+      println(s"gr2\t$gr2")
+      println(s"xd2\t$xd2")
+      println(s"shouldBea2\t$shouldBea2")
+      if (!shouldBea2.equals(a2)) {
+        println(s"shouldBea2 != a2")
+        return false // TODO : debug using algebra proof in voting protocol paper
+      }
 
       outBuffer +=
         s"""b2=${this.b2}
@@ -207,10 +233,22 @@ class Ballot(cp:CryptographicParameters, voter:String) {
            |d2=${this.d2}
            |b2 = h^r2 (y/G)^d2 ?\n
            |""".stripMargin
-      val yByG = y.modInverse(cp.zkp_generator_G)
-      if (!cp.public_key_h.modPow(r2, cp.large_prime_p).multiply(
-        yByG.modPow(d2, cp.large_prime_p)).mod(cp.large_prime_p).equals(b2))
+      val yByG = cp.zkp_generator_G.modInverse(cp.large_prime_p).multiply(y).mod(cp.large_prime_p)
+      val hr2 = cp.public_key_h.modPow(r2, cp.large_prime_p)
+      val yByGpowd2 = yByG.modPow(d2, cp.large_prime_p)
+      val hr2yByGpowd2 = hr2.multiply(yByGpowd2).mod(cp.large_prime_p)
+      println(s"yByG\t$yByG")
+      println(s"hr2\t$hr2")
+      println(s"yByGpowd2\t$yByGpowd2")
+      println(s"hr2yByGpowd2\t$hr2yByGpowd2")
+      if (!hr2yByGpowd2.equals(b2)) {
+        println(s"hr2yByGpowd2 != b2")
         return false
+      }
+//      val yByG = y.modInverse(cp.zkp_generator_G)
+//      if (!cp.public_key_h.modPow(r2, cp.large_prime_p).multiply(
+//        yByG.modPow(d2, cp.large_prime_p)).mod(cp.large_prime_p).equals(b2))
+//        return false
       //println(outBuffer.toString())
       //println("done")
       true
