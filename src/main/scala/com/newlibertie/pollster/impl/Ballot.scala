@@ -14,28 +14,30 @@ import scala.collection.mutable.ListBuffer
   * 1. Using the cast(vote:Boolean) method to populate its internal fields, or
   * 2. Instantiate it from pre-computed fields.  In this scenario, the implementation
   * will verify the ballot as can anyway be done using the verify() method.
-  * @param cp cryptographic parameters of the poll this ballot is about
+  *
+  * @param cp    cryptographic parameters of the poll this ballot is about
   * @param voter String identifier identifying the voter
   */
-class Ballot(cp:CryptographicParameters, voter:String) {
+class Ballot(cp: CryptographicParameters, voter: String) {
 
   final val isdbg = false
-  var x,y :BigInteger = _
+  var x, y: BigInteger = _
 
-  var a1, b1, a2, b2 :BigInteger = _
+  var a1, b1, a2, b2: BigInteger = _
 
-  var d1, d2, r1, r2 :BigInteger = _
-  var c_val:BigInteger = _
+  var d1, d2, r1, r2: BigInteger = _
+  var c_val: BigInteger = _
 
   /**
     * Cast a vote - populates all parameters to become a verifiable ballot
+    *
     * @param vote boolean vote, true = yay, false = nay
     */
-    // TODO: Can be made to have only-once semantics (in that case there may
-    // TODO: also save the metadata - where this ballot was casted, what UTC ts,
-    // TODO: etc - that can serve other purposes when aggregated at scale)
+  // TODO: Can be made to have only-once semantics (in that case there may
+  // TODO: also save the metadata - where this ballot was casted, what UTC ts,
+  // TODO: etc - that can serve other purposes when aggregated at scale)
 
-  def cast(vote:Boolean): Unit = {
+  def cast(vote: Boolean): Unit = {
     // Voter votes m^0 or m^1
     // Ballot is a tuple (x,y,a1,b1,a2,b2)
     //    x    g^alpha,
@@ -49,10 +51,10 @@ class Ballot(cp:CryptographicParameters, voter:String) {
       new BigInteger("11774")
     else
       CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
-    this.c_val = if (isdbg)
-      new BigInteger("257600")
-    else
-      CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
+//    this.c_val = if (isdbg)
+//      new BigInteger("257600")
+//    else
+//      CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
 
     // TODO : insecure, delete please
     println(s"voter\t${this.voter}")
@@ -60,51 +62,53 @@ class Ballot(cp:CryptographicParameters, voter:String) {
 
     this.x = cp.generator_g.modPow(alpha, cp.large_prime_p)
     if (vote) { // is positive vote
-      this.y = cp.public_key_h.modPow(alpha, cp.large_prime_p).multiply(cp.zkp_generator_G).mod(cp.large_prime_p)
-      this.d1 = if (isdbg)
-        new BigInteger("63832")
-      else
-        CryptographicParameters.random(CryptographicParameters.BITS).mod(this.c_val)   // TODO : adjust and check if "we will use SHA-512 for zkp" can work with c = d1 + d2
-      this.d2 = this.c_val.subtract(this.d1)
-      val omega = if (isdbg)
-        new BigInteger("2281424433")
-      else
-        this.c_val.multiply(alpha)  //.mod(cp.large_prime_p)
-      println(s"omega\t$omega")
+      this.y = cp.public_key_h.modPow(alpha, cp.large_prime_p).multiply(
+        cp.zkp_generator_G).mod(cp.large_prime_p)
       this.r1 = if (isdbg)
         new BigInteger("123456")
       else
         CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
+      this.c_val = getC(this.r1)
+      val omega = if (isdbg)
+        new BigInteger("2281424433")
+      else
+        this.c_val.multiply(alpha) //.mod(cp.large_prime_p)
+      println(s"omega\t$omega")
+      this.a2 = cp.generator_g.modPow(omega, cp.large_prime_p)
+      this.b2 = cp.public_key_h.modPow(omega, cp.large_prime_p)
+      this.d1 = if (isdbg)
+        new BigInteger("63832")
+      else
+        CryptographicParameters.random(CryptographicParameters.BITS).mod(this.c_val) // TODO : adjust and check if "we will use SHA-512 for zkp" can work with c = d1 + d2
       this.a1 = cp.generator_g.modPow(r1, cp.large_prime_p)
         .multiply(x.modPow(d1, cp.large_prime_p))
         .mod(cp.large_prime_p)
       this.b1 = cp.public_key_h.modPow(r1, cp.large_prime_p)
         .multiply(y.multiply(cp.zkp_generator_G).modPow(d1, cp.large_prime_p))
         .mod(cp.large_prime_p)
-      this.a2 = cp.generator_g.modPow(omega, cp.large_prime_p)
-      this.b2 = cp.public_key_h.modPow(omega, cp.large_prime_p)
+      this.d2 = this.c_val.subtract(this.d1)
       this.r2 = omega.subtract(alpha.multiply(this.d2).mod(omega))
     }
     else { // vote is negative
       this.y = cp.public_key_h.modPow(alpha, cp.large_prime_p).multiply(
-          cp.zkp_generator_G.modInverse(cp.large_prime_p)
-        ).mod(cp.large_prime_p)
-      this.d2 = if (isdbg)
-        new BigInteger("193768")
-      else
-        CryptographicParameters.random(CryptographicParameters.BITS).mod(this.c_val)   // TODO : adjust and check if "we will use SHA-512 for zkp" can work with c = d1 + d2
-      this.d1 = this.c_val.subtract(this.d2)
-      val omega = if (isdbg)
-        new BigInteger("2281424433")
-      else
-        this.c_val.multiply(alpha)  //.mod(cp.large_prime_p)
-      println(s"omega\t$omega")
+        cp.zkp_generator_G.modInverse(cp.large_prime_p)
+      ).mod(cp.large_prime_p)
       this.r2 = if (isdbg)
         new BigInteger("123456")
       else
         CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
+      this.c_val = getC(r2)
+      val omega = if (isdbg)
+        new BigInteger("2281424433")
+      else
+        this.c_val.multiply(alpha) //.mod(cp.large_prime_p)
+      println(s"omega\t$omega")
       this.a1 = cp.generator_g.modPow(omega, cp.large_prime_p)
       this.b1 = cp.public_key_h.modPow(omega, cp.large_prime_p)
+      this.d2 = if (isdbg)
+        new BigInteger("193768")
+      else
+        CryptographicParameters.random(CryptographicParameters.BITS).mod(this.c_val) // TODO : adjust and check if "we will use SHA-512 for zkp" can work with c = d1 + d2
       this.a2 = cp.generator_g.modPow(r2, cp.large_prime_p)
         .multiply(x.modPow(d2, cp.large_prime_p))
         .mod(cp.large_prime_p)
@@ -114,6 +118,7 @@ class Ballot(cp:CryptographicParameters, voter:String) {
       val yByGpowd2 = yByG.modPow(d2, cp.large_prime_p)
       val hr2yByGpowd2 = hr2.multiply(yByGpowd2).mod(cp.large_prime_p)
       this.b2 = hr2yByGpowd2
+      this.d1 = this.c_val.subtract(this.d2)
       this.r1 = omega.subtract(alpha.multiply(this.d1).mod(omega))
     }
     println(s"large_prime_p\t${this.cp.large_prime_p}")
@@ -134,12 +139,35 @@ class Ballot(cp:CryptographicParameters, voter:String) {
     println(s"y\t${this.y}")
   }
 
+  private def getC(r: BigInteger) = {
+    // take hash of <voter string, poll details>.  the hash of this content is used to calculate the
+    // parameters d1 and d2 - which are used to produce the zero knowledge proof that the encrypted
+    // ballot is a valid ballot for the given poll
+    //
+    // this.voter     is the name of the voter - eg: https://www.facebook.com/vpathak000
+    // the remaining parameters can be described as follows:
+    // h              poll public key - which is also the identifier for the polls
+    // x              some random numbers,  refer to the white paper
+    //
+    val s = // the "formula" for the content hash is same as in the while paper : H(v_i||T)
+    s"""${this.voter}
+       |h=${this.cp.public_key_h}
+       |h=${this.cp.zkp_generator_G}
+       |x=${this.x}
+       |y=${this.y}
+       |a2=$r
+       |""".stripMargin
+    val shaBin = java.security.MessageDigest.getInstance("SHA-512").digest(s.getBytes("utf-8"))
+    println(s"string to hash $s -> ${new BigInteger(1, shaBin).toString}")
+    new BigInteger(1, shaBin).mod(cp.large_prime_p)
+  }
+
   /**
     * ZKP Verify integrity of the ballot
     */
-  def verify(_outBuffer:ListBuffer[String]=null): Boolean = {
+  def verify(_outBuffer: ListBuffer[String] = null): Boolean = {
     // TODO : fix design-ish issue.  why we would allowed 
-    val outBuffer = if(_outBuffer == null)
+    val outBuffer = if (_outBuffer == null)
       new ListBuffer[String]()
     else
       _outBuffer
@@ -172,14 +200,14 @@ class Ballot(cp:CryptographicParameters, voter:String) {
       println(s"gpowr1\t$gpowr1")
       println(s"xpowd1\t$xpowd1")
       println(s"prod\t$prod")
-      if (!prod.equals(a1)){
+      if (!prod.equals(a1)) {
         println(s"a1 != prod")
         return false
       }
-//      if (!cp.generator_g.modPow(r1, cp.large_prime_p).multiply(x.modPow(d1, cp.large_prime_p)).mod(cp.large_prime_p).equals(a1)) {
-//        println(s"a1 != $a1")
-//        return false
-//      }
+      //      if (!cp.generator_g.modPow(r1, cp.large_prime_p).multiply(x.modPow(d1, cp.large_prime_p)).mod(cp.large_prime_p).equals(a1)) {
+      //        println(s"a1 != $a1")
+      //        return false
+      //      }
 
       outBuffer +=
         s"""b1=${this.b1}
@@ -213,7 +241,7 @@ class Ballot(cp:CryptographicParameters, voter:String) {
       println(s"shouldBea2\t$shouldBea2")
       if (!shouldBea2.equals(a2)) {
         println(s"shouldBea2 != a2")
-        return false                        // TODO : debug using algebra proof in voting protocol paper
+        return false // TODO : debug using algebra proof in voting protocol paper
       }
 
       outBuffer +=
@@ -243,7 +271,7 @@ class Ballot(cp:CryptographicParameters, voter:String) {
       true
     }
     catch {
-      case ex : Throwable =>
+      case ex: Throwable =>
         println(s"Failed to verify because of exception ${ex.toString}")
         false
     }

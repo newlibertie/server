@@ -26,9 +26,6 @@ case class CryptographicParameters
 )
 {
   val zkp_generator_G:BigInteger = CryptographicParameters.random().mod(large_prime_p)
-//  val zkp_generator_G:BigInteger = BigInteger.probablePrime(BITS/2, rng)
-//  val zkp_generator_G:BigInteger = new BigInteger("11113")
-//  val public_key_h = generator_g.modPow(private_key_s, large_prime_p)
   val public_key_h = if (isdbg)
     new BigInteger("1048806755")
   else
