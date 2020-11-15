@@ -44,7 +44,8 @@ class Ballot(cp:CryptographicParameters, voter:String) {
     //    b2   h ^ omega      OR  h ^ {r2} (y/G)^{d2}
 
     val alpha = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
-    val omega = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
+//    val omega = CryptographicParameters.random(CryptographicParameters.BITS).multiply(alpha)  //.mod(cp.large_prime_p)
+    val omega = cp.large_prime_p.multiply(alpha)  //.mod(cp.large_prime_p)
       // TODO : insecure, delete please
     println(s"alpha is $alpha")
     println(s"omega is $omega")
@@ -61,9 +62,6 @@ class Ballot(cp:CryptographicParameters, voter:String) {
 
     if (vote) { // is positive vote
       this.d1 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)   // TODO : adjust and check if "we will use SHA-512 for zkp" can work with c = d1 + d2
-//      this.d1 = new BigInteger("63832").mod(cp.large_prime_p)
-//      this.d1 = CryptographicParameters.random(CryptographicParameters.BITS).mod(this.c_val) // TODO : adjust and check if "we will use SHA-512 for zkp" can work with c = d1 + d2
-
       this.r1 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
       this.a1 = cp.generator_g.modPow(r1, cp.large_prime_p)
         .multiply(x.modPow(d1, cp.large_prime_p))
@@ -73,38 +71,25 @@ class Ballot(cp:CryptographicParameters, voter:String) {
         .mod(cp.large_prime_p)
       this.a2 = cp.generator_g.modPow(omega, cp.large_prime_p)
       this.b2 = cp.public_key_h.modPow(omega, cp.large_prime_p)
-      val c = getC  //.mod(cp.large_prime_p)
-//      val c = new BigInteger("257600").mod(cp.large_prime_p)
+      val c = getC
       this.d2 = c.subtract(this.d1).mod(cp.large_prime_p)
-//      this.d2 = this.c_val.subtract(this.d1)
-//      this.r2 = omega.subtract(alpha.multiply(this.d2)).mod(cp.large_prime_p)
-//      this.r2 = omega.subtract(alpha.multiply(this.d2).mod(cp.large_prime_p))
       this.r2 = omega.subtract(alpha.multiply(this.d2).mod(omega))
     }
     else { // vote is negative
       this.d2 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
-//      this.d2 = new BigInteger("193768").mod(cp.large_prime_p)
-//      this.d2 = CryptographicParameters.random(CryptographicParameters.BITS).mod(this.c_val)
       this.r2 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
       this.a1 = cp.generator_g.modPow(omega, cp.large_prime_p)
       this.b1 = cp.public_key_h.modPow(omega, cp.large_prime_p)
       this.a2 = cp.generator_g.modPow(r2, cp.large_prime_p)
         .multiply(x.modPow(d2, cp.large_prime_p))
         .mod(cp.large_prime_p)
-//      this.b2 = cp.public_key_h.modPow(r2, cp.large_prime_p)
-//        .multiply(cp.zkp_generator_G.modInverse(cp.large_prime_p)
-//          .multiply(y).modPow(d2, cp.large_prime_p))
-//        .mod(cp.large_prime_p)
       this.b2 = cp.public_key_h.modPow(r2, cp.large_prime_p)
         .multiply(cp.zkp_generator_G.modInverse(cp.large_prime_p)
-          .multiply(y).mod(cp.large_prime_p).modPow(d2, cp.large_prime_p))
-//          .multiply(y).modPow(d2, cp.large_prime_p))
-        .mod(cp.large_prime_p)
-      val c = getC  //.mod(cp.large_prime_p)
-//      val c = new BigInteger("257600").mod(cp.large_prime_p)
+        .multiply(y).mod(cp.large_prime_p).modPow(d2, cp.large_prime_p)
+      ).mod(cp.large_prime_p)
+
+      val c = getC
       this.d1 = c.subtract(this.d2).mod(cp.large_prime_p)
-//      this.r1 = omega.subtract(alpha.multiply(this.d1)).mod(cp.large_prime_p)
-//      this.r1 = omega.subtract(alpha.multiply(this.d1).mod(cp.large_prime_p))
       this.r1 = omega.subtract(alpha.multiply(this.d1).mod(omega))
     }
     println(s"large_prime_p\t${this.cp.large_prime_p}")
@@ -136,15 +121,15 @@ class Ballot(cp:CryptographicParameters, voter:String) {
     // x              some random numbers,  refer to the white paper
     //
     val s =       // the "formula" for the content hash is same as in the while paper : H(v_i||T)
-    s"""${this.voter}
-      |h=${cp.public_key_h}
-      |x=${this.x}
-      |y=${this.y}
+      s"""${this.voter}
+         |h=${cp.public_key_h}
+         |x=${this.x}
+         |y=${this.y}
       |a1=${this.a1}
       |b1=${this.b1}
       |a2=${this.a2}
       |b2=${this.b2}
-      |""".stripMargin
+         |""".stripMargin
     val shaBin = java.security.MessageDigest.getInstance("SHA-512").digest(s.getBytes("utf-8"))
     println(s"string to hash $s -> ${new BigInteger(1, shaBin).toString}")
     new BigInteger(1, shaBin) //.mod(cp.large_prime_p)
@@ -160,9 +145,7 @@ class Ballot(cp:CryptographicParameters, voter:String) {
       new ListBuffer[String]()
     else
       _outBuffer
-//    val c = new BigInteger("257600").mod(cp.large_prime_p)
     outBuffer +=
-      //    s"""C=$c
       s"""C=${this.getC}
          |d1=${this.d1}
          |d2=${this.d2}
@@ -183,10 +166,13 @@ class Ballot(cp:CryptographicParameters, voter:String) {
            |d1=${this.d1}
            |a1 = g^r1 . x ^ d1 ?\n
            |""".stripMargin
+      val gpowr1 = cp.generator_g.modPow(r1, cp.large_prime_p)
+      val xpowd1 = x.modPow(d1, cp.large_prime_p)
+      val prod = gpowr1.multiply(xpowd1).mod(cp.large_prime_p)
       println(s"gpowr1\t$gpowr1")
       println(s"xpowd1\t$xpowd1")
       println(s"prod\t$prod")
-      if (!cp.generator_g.modPow(r1, cp.large_prime_p).multiply(x.modPow(d1, cp.large_prime_p)).mod(cp.large_prime_p).equals(a1)) {
+      if (!prod.equals(a1)) {
         println(s"a1 != prod")
         return false
       }
@@ -245,10 +231,6 @@ class Ballot(cp:CryptographicParameters, voter:String) {
         println(s"hr2yByGpowd2 != b2")
         return false
       }
-//      val yByG = y.modInverse(cp.zkp_generator_G)
-//      if (!cp.public_key_h.modPow(r2, cp.large_prime_p).multiply(
-//        yByG.modPow(d2, cp.large_prime_p)).mod(cp.large_prime_p).equals(b2))
-//        return false
       //println(outBuffer.toString())
       //println("done")
       true
