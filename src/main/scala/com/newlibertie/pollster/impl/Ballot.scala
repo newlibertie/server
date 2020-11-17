@@ -44,11 +44,7 @@ class Ballot(cp:CryptographicParameters, voter:String) {
     //    b2   h ^ omega      OR  h ^ {r2} (y/G)^{d2}
 
     val alpha = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
-//    val omega = CryptographicParameters.random(CryptographicParameters.BITS).multiply(alpha)  //.mod(cp.large_prime_p)
-    val omega = cp.large_prime_p.multiply(alpha)  //.mod(cp.large_prime_p)
-      // TODO : insecure, delete please
-    println(s"alpha is $alpha")
-    println(s"omega is $omega")
+    val omega = cp.large_prime_p.multiply(alpha)
 
     this.x = cp.generator_g.modPow(alpha, cp.large_prime_p)
     this.y = if (vote) {
@@ -67,12 +63,11 @@ class Ballot(cp:CryptographicParameters, voter:String) {
         .multiply(x.modPow(d1, cp.large_prime_p))
         .mod(cp.large_prime_p)
       this.b1 = cp.public_key_h.modPow(r1, cp.large_prime_p)
-        .multiply(y.multiply(cp.zkp_generator_G).mod(cp.large_prime_p).modPow(d1, cp.large_prime_p))
+        .multiply(y.multiply(cp.zkp_generator_G).modPow(d1, cp.large_prime_p))
         .mod(cp.large_prime_p)
       this.a2 = cp.generator_g.modPow(omega, cp.large_prime_p)
       this.b2 = cp.public_key_h.modPow(omega, cp.large_prime_p)
-      val c = getC
-      this.d2 = c.subtract(this.d1).mod(cp.large_prime_p)
+      this.d2 = getC.subtract(this.d1).mod(cp.large_prime_p)
       this.r2 = omega.subtract(alpha.multiply(this.d2).mod(omega))
     }
     else { // vote is negative
@@ -85,29 +80,12 @@ class Ballot(cp:CryptographicParameters, voter:String) {
         .mod(cp.large_prime_p)
       this.b2 = cp.public_key_h.modPow(r2, cp.large_prime_p)
         .multiply(cp.zkp_generator_G.modInverse(cp.large_prime_p)
-        .multiply(y).mod(cp.large_prime_p).modPow(d2, cp.large_prime_p)
+        .multiply(y).modPow(d2, cp.large_prime_p)
       ).mod(cp.large_prime_p)
 
-      val c = getC
-      this.d1 = c.subtract(this.d2).mod(cp.large_prime_p)
+      this.d1 = getC.subtract(this.d2).mod(cp.large_prime_p)
       this.r1 = omega.subtract(alpha.multiply(this.d1).mod(omega))
     }
-    println(s"large_prime_p\t${this.cp.large_prime_p}")
-    println(s"generator_g\t${this.cp.generator_g}")
-    println(s"private_key_s\t${this.cp.private_key_s}")
-    println(s"public_key_h\t${this.cp.public_key_h}")
-    println(s"zkp_generator_G\t${this.cp.zkp_generator_G}")
-    println(s"a1\t${this.a1}")
-    println(s"a2\t${this.a2}")
-    println(s"b1\t${this.b1}")
-    println(s"b2\t${this.b2}")
-    println(s"c_val\t${this.getC}")
-    println(s"d1\t${this.d1}")
-    println(s"d2\t${this.d2}")
-    println(s"r1\t${this.r1}")
-    println(s"r2\t${this.r2}")
-    println(s"x\t${this.x}")
-    println(s"y\t${this.y}")
   }
 
   private def getC = {
@@ -122,19 +100,18 @@ class Ballot(cp:CryptographicParameters, voter:String) {
     //
     val s =       // the "formula" for the content hash is same as in the while paper : H(v_i||T)
       s"""${this.voter}
-         |h=${cp.public_key_h}
-         |x=${this.x}
-         |y=${this.y}
-      |a1=${this.a1}
-      |b1=${this.b1}
-      |a2=${this.a2}
-      |b2=${this.b2}
-         |""".stripMargin
+        |h=${cp.public_key_h}
+        |x=${this.x}
+        |y=${this.y}
+        |a1=${this.a1}
+        |b1=${this.b1}
+        |a2=${this.a2}
+        |b2=${this.b2}
+        |""".stripMargin
     val shaBin = java.security.MessageDigest.getInstance("SHA-512").digest(s.getBytes("utf-8"))
-    println(s"string to hash $s -> ${new BigInteger(1, shaBin).toString}")
-    new BigInteger(1, shaBin) //.mod(cp.large_prime_p)
+//    println(s"string to hash $s -> ${new BigInteger(1, shaBin).toString}")
+    new BigInteger(1, shaBin)
   }
-
 
   /**
     * ZKP Verify integrity of the ballot
@@ -153,9 +130,8 @@ class Ballot(cp:CryptographicParameters, voter:String) {
          |""".stripMargin
 
     try {
-      val c = getC.mod(cp.large_prime_p)
-      val shouldBec = this.d1.add(this.d2).mod(cp.large_prime_p)
-      if (!c.equals(shouldBec))
+
+      if (!getC.mod(cp.large_prime_p).equals(this.d1.add(this.d2).mod(cp.large_prime_p)))
         return false
 
       outBuffer +=
@@ -166,16 +142,10 @@ class Ballot(cp:CryptographicParameters, voter:String) {
            |d1=${this.d1}
            |a1 = g^r1 . x ^ d1 ?\n
            |""".stripMargin
-      val gpowr1 = cp.generator_g.modPow(r1, cp.large_prime_p)
-      val xpowd1 = x.modPow(d1, cp.large_prime_p)
-      val prod = gpowr1.multiply(xpowd1).mod(cp.large_prime_p)
-      println(s"gpowr1\t$gpowr1")
-      println(s"xpowd1\t$xpowd1")
-      println(s"prod\t$prod")
-      if (!prod.equals(a1)) {
-        println(s"a1 != prod")
+
+      if (!cp.generator_g.modPow(r1, cp.large_prime_p)
+        .multiply(x.modPow(d1, cp.large_prime_p)).mod(cp.large_prime_p).equals(a1))
         return false
-      }
 
       outBuffer +=
         s"""b1=${this.b1}
@@ -186,9 +156,10 @@ class Ballot(cp:CryptographicParameters, voter:String) {
            |d1=${this.d1}
            |b1 = h^r1 (yG)^d1 ?\n
            |""".stripMargin
-      val yG = y.multiply(cp.zkp_generator_G)
-      if (!cp.public_key_h.modPow(r1, cp.large_prime_p).multiply(
-        yG.modPow(d1, cp.large_prime_p)).mod(cp.large_prime_p).equals(b1))
+
+      if (!cp.public_key_h.modPow(r1, cp.large_prime_p)
+        .multiply(y.multiply(cp.zkp_generator_G).modPow(d1, cp.large_prime_p))
+        .mod(cp.large_prime_p).equals(b1))
         return false
 
       outBuffer +=
@@ -199,16 +170,10 @@ class Ballot(cp:CryptographicParameters, voter:String) {
            |d2=${this.d2}
            |a2 = g^r2 x^d2 ?\n
            |""".stripMargin
-      val gr2 = cp.generator_g.modPow(r2, cp.large_prime_p)
-      val xd2 = x.modPow(d2, cp.large_prime_p)
-      val shouldBea2 = gr2.multiply(xd2).mod(cp.large_prime_p)
-      println(s"gr2\t$gr2")
-      println(s"xd2\t$xd2")
-      println(s"shouldBea2\t$shouldBea2")
-      if (!shouldBea2.equals(a2)) {
-        println(s"shouldBea2 != a2")
+
+      if (!cp.generator_g.modPow(r2, cp.large_prime_p)
+        .multiply(x.modPow(d2, cp.large_prime_p)).mod(cp.large_prime_p).equals(a2))
         return false // TODO : debug using algebra proof in voting protocol paper
-      }
 
       outBuffer +=
         s"""b2=${this.b2}
@@ -219,20 +184,13 @@ class Ballot(cp:CryptographicParameters, voter:String) {
            |d2=${this.d2}
            |b2 = h^r2 (y/G)^d2 ?\n
            |""".stripMargin
-      val yByG = cp.zkp_generator_G.modInverse(cp.large_prime_p).multiply(y).mod(cp.large_prime_p)
-      val hr2 = cp.public_key_h.modPow(r2, cp.large_prime_p)
-      val yByGpowd2 = yByG.modPow(d2, cp.large_prime_p)
-      val hr2yByGpowd2 = hr2.multiply(yByGpowd2).mod(cp.large_prime_p)
-      println(s"yByG\t$yByG")
-      println(s"hr2\t$hr2")
-      println(s"yByGpowd2\t$yByGpowd2")
-      println(s"hr2yByGpowd2\t$hr2yByGpowd2")
-      if (!hr2yByGpowd2.equals(b2)) {
-        println(s"hr2yByGpowd2 != b2")
+
+      if (!cp.public_key_h.modPow(r2, cp.large_prime_p)
+        .multiply(cp.zkp_generator_G.modInverse(cp.large_prime_p)
+          .multiply(y).modPow(d2, cp.large_prime_p))
+        .mod(cp.large_prime_p).equals(b2))
         return false
-      }
-      //println(outBuffer.toString())
-      //println("done")
+
       true
     }
     catch {

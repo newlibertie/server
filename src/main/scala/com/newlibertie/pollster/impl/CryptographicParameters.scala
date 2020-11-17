@@ -3,7 +3,7 @@ package com.newlibertie.pollster.impl
 import java.math.BigInteger
 
 object CryptographicParameters {
-  val BITS = 32 // 1000  // TODO : check for various values and then choose a production secure value
+  val BITS = 1000  // TODO : check for various values and then choose a production secure value
   import java.security.SecureRandom;
   private val rng = new SecureRandom()
 
