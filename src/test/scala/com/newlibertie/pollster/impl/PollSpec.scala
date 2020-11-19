@@ -27,6 +27,6 @@ class PollSpec extends FlatSpec with Matchers {
     p.p.title shouldEqual "abacadabra"
     p.p.tags shouldEqual List("abacadabra", "abacadabra2")
     p.cp.large_prime_p.toString shouldEqual "123497"
-    p.cp.public_key_h.toString shouldEqual "29942"
+    p.cp.public_key_h.toString shouldEqual "6150"
   }
 }
