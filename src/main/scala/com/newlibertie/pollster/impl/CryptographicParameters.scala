@@ -3,7 +3,7 @@ package com.newlibertie.pollster.impl
 import java.math.BigInteger
 
 object CryptographicParameters {
-  val BITS = 1000
+  val BITS = 32 // 1000
   import java.security.SecureRandom;
   private val rng = new SecureRandom()
 

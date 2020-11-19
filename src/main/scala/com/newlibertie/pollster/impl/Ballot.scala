@@ -25,6 +25,14 @@ class Ballot(cp:CryptographicParameters, voter:String) {
 
   var d1, d2, r1, r2 :BigInteger = null
 
+  private def assertInversesExist(): Boolean = {
+    if( cp.large_prime_p.gcd(cp.generator_g).equals(BigInteger.ONE) && y.gcd(cp.zkp_generator_G).equals(BigInteger.ONE)) {
+      true
+    } else {
+      false
+    }
+  }
+
   /**
     * Cast a vote - populates all parameters to become a verifiable ballot
     * @param vote boolean vote, true = yay, false = nay
@@ -33,7 +41,7 @@ class Ballot(cp:CryptographicParameters, voter:String) {
     // TODO: also save the metadata - where this ballot was casted, what UTC ts,
     // TODO: etc - that can serve other purposes when aggregated at scale)
 
-  def cast(vote:Boolean) = {
+  def cast(vote:Boolean): Unit = {
     // Voter votes m^0 or m^1
     // Ballot is a tuple (x,y,a1,b1,a2,b2)
     //    x    g^alpha,
@@ -42,9 +50,8 @@ class Ballot(cp:CryptographicParameters, voter:String) {
     //    b1   h^r1 (yG)^{d1} OR  h ^ omega
     //    a2   g ^ omega      OR  g ^ {r2} x ^ {d2}
     //    b2   h ^ omega      OR  h ^ {r2} (y/G)^{d2}
-
-    val alpha = CryptographicParameters.random().mod(cp.large_prime_p)
-    val omega = CryptographicParameters.random().mod(cp.large_prime_p)
+    val alpha = CryptographicParameters.random(CryptographicParameters.BITS)
+    val omega = CryptographicParameters.random(4*CryptographicParameters.BITS)
 
     this.x = cp.generator_g.modPow(alpha, cp.large_prime_p)
     this.y = if (vote)
@@ -82,6 +89,8 @@ class Ballot(cp:CryptographicParameters, voter:String) {
         .mod(cp.large_prime_p)
       this.d1 = c.subtract(this.d2)
     }
+    if(!this.assertInversesExist())
+      cast(vote)
   }
 
   private def getC() = {
@@ -104,8 +113,9 @@ class Ballot(cp:CryptographicParameters, voter:String) {
       |a2=${this.a2}
       |b2=${this.b2}
       |""".stripMargin
-    val shaBin = java.security.MessageDigest.getInstance("SHA-512").digest(s.getBytes("utf-8"))
-    new BigInteger(1, shaBin)
+    val shaBin = java.security.MessageDigest.getInstance ("SHA-512").digest(s.getBytes("utf-8"))
+    println(s"C ${new BigInteger(1, shaBin).mod(new BigInteger("2").pow(CryptographicParameters.BITS))} from H( ${s} ) ")
+    new BigInteger(1, shaBin).mod(new BigInteger("2").pow(2*CryptographicParameters.BITS))
   }
 
 
@@ -164,9 +174,6 @@ class Ballot(cp:CryptographicParameters, voter:String) {
          |d2=${this.d2}
          |a2 = g^r2 x^d2 ?\n
          |""".stripMargin
-    // TODO : fix*
-    // java.lang.ArithmeticException: BigInteger not invertible.
-    // TODO : Drill why there is an invertibility question here.  these are just mod pow and remainders
     if(!cp.generator_g.modPow(r2, cp.large_prime_p).multiply(x.modPow(d2, cp.large_prime_p)).mod(cp.large_prime_p).equals(a2))
       return false
 
@@ -179,11 +186,10 @@ class Ballot(cp:CryptographicParameters, voter:String) {
          |d2=${this.d2}
          |b2 = h^r2 (y/G)^d2 ?\n
          |""".stripMargin
-    //val yByG = y.modInverse(cp.zkp_generator_G)
-    //if(!cp.public_key_h.modPow(r2, cp.large_prime_p).multiply(
-    //  yByG.modPow(d2, cp.large_prime_p)).mod(cp.large_prime_p).equals(b2))
-    //  return false
 
+    val yByG = y.multiply(cp.zkp_generator_G.modInverse(cp.large_prime_p)).mod(cp.large_prime_p)      // y/G
+    if( cp.public_key_h.modPow(r2, cp.large_prime_p).multiply(yByG.modPow(d2, cp.large_prime_p)).mod(cp.large_prime_p) != b2 )
+      return false
 
     println(outBuffer.toString())
     println("done")

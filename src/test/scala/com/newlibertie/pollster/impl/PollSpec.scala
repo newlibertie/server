@@ -19,7 +19,7 @@ class PollSpec extends FlatSpec with Matchers {
         |  "poll_type":"abacadabra",
         |  "poll_spec":"abacadabra",
         |  "p" : "123497",
-        |  "g" : "33",
+        |  "g" : "31",
         |  "s" : "11115"
         |}
       """.stripMargin)
