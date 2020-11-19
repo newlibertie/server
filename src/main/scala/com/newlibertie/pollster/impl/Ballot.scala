@@ -3,6 +3,12 @@ package com.newlibertie.pollster.impl
 import java.math.BigInteger    // TODO : consider java
 
 import scala.collection.mutable.ListBuffer
+/*!! Important security note : The precise ordering and content of each 
+variable computed below must be regarded as a *security sensitive change* 
+where a minor slip may result in total loss of the security properties we 
+set out to achieve as described in the white paper https://github.com/newlibertie/voting-protocol/blob/master/vp.pdf
+Consequently, such a change can also be considered as an attack.
+The deployed sha of this file should be watched vigorously !!*/
 
 /**
   * Implementationv of ballot
