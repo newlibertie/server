@@ -43,22 +43,22 @@ class Ballot(cp:CryptographicParameters, voter:String) {
     //    a2   g ^ omega      OR  g ^ {r2} x ^ {d2}
     //    b2   h ^ omega      OR  h ^ {r2} (y/G)^{d2}
 
-    val alpha = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
-    val omega = cp.large_prime_p.multiply(alpha)
+    val alpha = CryptographicParameters.random(CryptographicParameters.BITS)
+    //val omega = cp.large_prime_p.multiply(alpha)
+    val omega = CryptographicParameters.random(3*CryptographicParameters.BITS)
 
     this.x = cp.generator_g.modPow(alpha, cp.large_prime_p)
     this.y = if (vote) {
       cp.public_key_h.modPow(alpha, cp.large_prime_p).multiply(
-        cp.zkp_generator_G).mod(cp.large_prime_p)
+        cp.zkp_generator_G)
     } else {
       cp.public_key_h.modPow(alpha, cp.large_prime_p).multiply(
-        cp.zkp_generator_G.modInverse(cp.large_prime_p)
-      ).mod(cp.large_prime_p)
+        cp.zkp_generator_G.modInverse(cp.large_prime_p))
     }
 
     if (vote) { // is positive vote
-      this.d1 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)   // TODO : adjust and check if "we will use SHA-512 for zkp" can work with c = d1 + d2
-      this.r1 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
+      this.d1 = CryptographicParameters.random(CryptographicParameters.BITS)
+      this.r1 = CryptographicParameters.random(CryptographicParameters.BITS)
       this.a1 = cp.generator_g.modPow(r1, cp.large_prime_p)
         .multiply(x.modPow(d1, cp.large_prime_p))
         .mod(cp.large_prime_p)
@@ -71,8 +71,8 @@ class Ballot(cp:CryptographicParameters, voter:String) {
       this.r2 = omega.subtract(alpha.multiply(this.d2).mod(omega))
     }
     else { // vote is negative
-      this.d2 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
-      this.r2 = CryptographicParameters.random(CryptographicParameters.BITS).mod(cp.large_prime_p)
+      this.d2 = CryptographicParameters.random(CryptographicParameters.BITS)
+      this.r2 = CryptographicParameters.random(CryptographicParameters.BITS)
       this.a1 = cp.generator_g.modPow(omega, cp.large_prime_p)
       this.b1 = cp.public_key_h.modPow(omega, cp.large_prime_p)
       this.a2 = cp.generator_g.modPow(r2, cp.large_prime_p)
@@ -110,7 +110,7 @@ class Ballot(cp:CryptographicParameters, voter:String) {
         |""".stripMargin
     val shaBin = java.security.MessageDigest.getInstance("SHA-512").digest(s.getBytes("utf-8"))
 //    println(s"string to hash $s -> ${new BigInteger(1, shaBin).toString}")
-    new BigInteger(1, shaBin)
+    new BigInteger(1, shaBin)//.mod(CryptographicParameters.c_limit)
   }
 
   /**
