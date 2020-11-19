@@ -60,8 +60,9 @@ class Ballot(cp:CryptographicParameters, voter:String) {
       cp.public_key_h.modPow(alpha, cp.large_prime_p).multiply(
         cp.zkp_generator_G.modInverse(cp.large_prime_p)
       )
-
-    if (vote) { // is positive vote
+    if(!this.assertInversesExist()) {
+      cast(vote)
+    } else if (vote) { // is positive vote
       this.d1 = CryptographicParameters.random(CryptographicParameters.BITS)
       this.r1 = CryptographicParameters.random(CryptographicParameters.BITS)
       this.a1 = cp.generator_g.modPow(r1, cp.large_prime_p)
@@ -91,8 +92,6 @@ class Ballot(cp:CryptographicParameters, voter:String) {
       this.d1 = c.subtract(this.d2)
       this.r1 = omega.subtract(alpha.multiply(d1))
     }
-    if(!this.assertInversesExist())
-      cast(vote)
   }
 
   private def getC() = {
