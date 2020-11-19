@@ -61,11 +61,9 @@ class Ballot(cp:CryptographicParameters, voter:String) {
         cp.zkp_generator_G.modInverse(cp.large_prime_p)
       )
 
-    this.r1 = CryptographicParameters.random()
-    this.r2 = CryptographicParameters.random()
-
     if (vote) { // is positive vote
-      this.d1 = CryptographicParameters.random(511)   // we will use SHA-512 for zkp
+      this.d1 = CryptographicParameters.random(CryptographicParameters.BITS)
+      this.r1 = CryptographicParameters.random(CryptographicParameters.BITS)
       this.a1 = cp.generator_g.modPow(r1, cp.large_prime_p)
         .multiply(x.modPow(d1, cp.large_prime_p))
         .mod(cp.large_prime_p)
@@ -74,11 +72,13 @@ class Ballot(cp:CryptographicParameters, voter:String) {
         .mod(cp.large_prime_p)
       this.a2 = cp.generator_g.modPow(omega, cp.large_prime_p)
       this.b2 = cp.public_key_h.modPow(omega, cp.large_prime_p)
-      this.d2 = getC().subtract(this.d1)
+      val c = getC()
+      this.d2 = c.subtract(this.d1)
+      this.r2 = omega.subtract(alpha.multiply(this.d2))
     }
     else { // vote is negative
-      val c = getC()
-      this.d2 = CryptographicParameters.random(511).mod(cp.large_prime_p)
+      this.d2 = CryptographicParameters.random(CryptographicParameters.BITS)
+      this.r2 = CryptographicParameters.random(CryptographicParameters.BITS)
       this.a1 = cp.generator_g.modPow(omega, cp.large_prime_p)
       this.b1 = cp.public_key_h.modPow(omega, cp.large_prime_p)
       this.a2 = cp.generator_g.modPow(r2, cp.large_prime_p)
@@ -87,7 +87,9 @@ class Ballot(cp:CryptographicParameters, voter:String) {
       this.b2 = cp.public_key_h.modPow(r2, cp.large_prime_p)
         .multiply(cp.zkp_generator_G.modInverse(cp.large_prime_p).multiply(y).modPow(d2, cp.large_prime_p))
         .mod(cp.large_prime_p)
+      val c = getC()
       this.d1 = c.subtract(this.d2)
+      this.r1 = omega.subtract(alpha.multiply(d1))
     }
     if(!this.assertInversesExist())
       cast(vote)
