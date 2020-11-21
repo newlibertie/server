@@ -32,4 +32,24 @@ class BallotSpec extends FlatSpec with Matchers {
     b.verify(transcript)   // shouldBe true
     transcript.foreach(line => println(line))
   }
+
+  // try multiple runs
+  "Ballot" should "pass 1K verification for negative vote" in {
+    for (a <- 0 until 1024){
+      val b = new Ballot(p.cp, "test-voter negative")
+      b.cast(false)
+      val transcript = ListBuffer[String]()
+      b.verify(transcript) shouldBe true
+      transcript.foreach(line => println(line))
+    }
+  }
+  "Ballot" should "pass 1K verification for positive vote" in {
+    for (a <- 0 until 1024){
+      val b = new Ballot(p.cp, "test-voter negative")
+      b.cast(true)
+      val transcript = ListBuffer[String]()
+      b.verify(transcript) shouldBe true
+      transcript.foreach(line => println(line))
+    }
+  }
 }
