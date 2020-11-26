@@ -3,7 +3,7 @@ package com.newlibertie.pollster.impl
 import java.math.BigInteger
 
 object CryptographicParameters {
-  val BITS = 32 // 1000
+  val BITS = 1000 // 32
   val TWO_POW_BITS_SQUARE = new BigInteger("2").pow(2*BITS)
   import java.security.SecureRandom;
   private val rng = new SecureRandom()
