@@ -3,6 +3,7 @@ package com.newlibertie.pollster.impl
 import java.math.BigInteger    // TODO : consider java
 
 import scala.collection.mutable.ListBuffer
+
 /*!! Important security note : The precise ordering and content of each 
 variable computed below must be regarded as a *security sensitive change* 
 where a minor slip may result in total loss of the security properties we 
@@ -11,7 +12,7 @@ Consequently, such a change can also be considered as an attack.
 The deployed sha of this file should be watched vigorously !!*/
 
 /**
-  * Implementationv of ballot
+  * Implementation of ballot
   *
   * A ballot object is empty but permanently associated with a specific poll and
   * a specific voter upon construction
@@ -30,14 +31,6 @@ class Ballot(cp:CryptographicParameters, voter:String) {
   var a1, b1, a2, b2 :BigInteger = null
 
   var d1, d2, r1, r2 :BigInteger = null
-
-  private def assertInversesExist(): Boolean = {
-    if( cp.large_prime_p.gcd(cp.generator_g).equals(BigInteger.ONE) && y.gcd(cp.zkp_generator_G).equals(BigInteger.ONE)) {
-      true
-    } else {
-      false
-    }
-  }
 
   /**
     * Cast a vote - populates all parameters to become a verifiable ballot
@@ -65,10 +58,9 @@ class Ballot(cp:CryptographicParameters, voter:String) {
     else
       cp.public_key_h.modPow(alpha, cp.large_prime_p).multiply(
         cp.zkp_generator_G.modInverse(cp.large_prime_p)
-      )
-    if(!this.assertInversesExist()) {
-      cast(vote)
-    } else if (vote) { // is positive vote
+      ).mod(cp.large_prime_p)
+
+    if (vote) { // is positive vote
       this.d1 = CryptographicParameters.random(CryptographicParameters.BITS)
       this.r1 = CryptographicParameters.random(CryptographicParameters.BITS)
       this.a1 = cp.generator_g.modPow(r1, cp.large_prime_p)
@@ -122,7 +114,7 @@ class Ballot(cp:CryptographicParameters, voter:String) {
       |""".stripMargin
     val shaBin = java.security.MessageDigest.getInstance ("SHA-512").digest(s.getBytes("utf-8"))
     println(s"C ${new BigInteger(1, shaBin).mod(new BigInteger("2").pow(CryptographicParameters.BITS))} from H( ${s} ) ")
-    new BigInteger(1, shaBin).mod(new BigInteger("2").pow(2*CryptographicParameters.BITS))
+    new BigInteger(1, shaBin).mod(CryptographicParameters.TWO_POW_BITS_SQUARE)
   }
 
 
