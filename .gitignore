@@ -79,6 +79,8 @@ project/plugins/project/
 .history
 .lib/
 
+.gradle
+
 ### Scala ###
 *.class
 *.log
