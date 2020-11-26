@@ -12,6 +12,14 @@ object CryptographicParameters {
 
   def random(bits:Int = BITS) = new BigInteger(bits, rng)
 
+  def randomCoprime(p:BigInteger) = {
+    var candidate = random().mod(p)
+    while( !candidate.gcd(p).equals(BigInteger.ONE) ) {
+      candidate = random().mod(p)
+    }
+    candidate
+  }
+
   def apply(p:BigInteger, g:BigInteger, s:BigInteger) = new CryptographicParameters(p, g, s)
 }
 
@@ -23,7 +31,7 @@ case class CryptographicParameters
   private_key_s:BigInteger = CryptographicParameters.random(),
 )
 {
-  val zkp_generator_G:BigInteger = CryptographicParameters.random().mod(large_prime_p)
+  val zkp_generator_G:BigInteger = CryptographicParameters.randomCoprime(large_prime_p)
   val public_key_h = generator_g.modPow(private_key_s, large_prime_p)
 
   // execution should truly never throw here because the probabilistic prime should be coprime to
