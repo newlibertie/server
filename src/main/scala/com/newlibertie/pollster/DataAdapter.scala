@@ -7,18 +7,19 @@ import com.newlibertie.pollster.errorenum.{ApplicationError, DatabaseError}
 import com.newlibertie.pollster.impl.Poll
 import com.typesafe.scalalogging.LazyLogging
 import net.liftweb.json.DefaultFormats
+import net.liftweb.json.JsonAST.{JArray, compactRender, prettyRender}
 import net.liftweb.json.Serialization.write
 
 import scala.collection.mutable
 
 object DataAdapter extends LazyLogging {
-  val user = System.getProperty("user", "clowdsource");
-  val pass = System.getProperty("password", "G00dN3w5") ;
-  val url = System.getProperty( "jdbcurl" ,
+  val user:String = System.getProperty("user", "clowdsource");
+  val pass:String = System.getProperty("password", "G00dN3w5") ;
+  val url:String = System.getProperty( "jdbcurl" ,
     "jdbc:mysql://localhost/nldb?zeroDateTimeBehavior=convertToNull&serverTimezone=UTC") ;
 
   val cachedConnection:ThreadLocal[Connection] = new ThreadLocal();
-  implicit val formats = DefaultFormats
+  implicit val formats: DefaultFormats.type = DefaultFormats
 
   def getConnection: Connection = {
     val existingConnection = cachedConnection.get();
@@ -41,7 +42,7 @@ object DataAdapter extends LazyLogging {
     }
   }
 
-  def createPoll(poll: Poll) = {
+  def createPoll(poll: Poll): Option[String] = {
     val query =
       s"""
         |INSERT INTO nldb.polls
