@@ -7,7 +7,6 @@ import com.newlibertie.pollster.errorenum.{ApplicationError, DatabaseError}
 import com.newlibertie.pollster.impl.Poll
 import com.typesafe.scalalogging.LazyLogging
 import net.liftweb.json.DefaultFormats
-import net.liftweb.json.JsonAST.{JArray, compactRender, prettyRender}
 import net.liftweb.json.Serialization.write
 
 import scala.collection.mutable

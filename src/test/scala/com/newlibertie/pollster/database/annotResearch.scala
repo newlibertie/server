@@ -1,24 +1,31 @@
 package com.newlibertie.pollster.database
 
 import java.lang.annotation.{ElementType, Retention, RetentionPolicy, Target}
-import scala.reflect.runtime.universe
 import scala.reflect.runtime.universe._
 import org.scalatest.{FlatSpec, Matchers}
 
+trait AnnotationInterface[T] {
+  def getValue: Option[T]
+}
+
 @Retention(RetentionPolicy.RUNTIME)
 @Target(Array(ElementType.TYPE))
-abstract class nldbAnnotation() extends scala.annotation.StaticAnnotation
-@Target(Array(ElementType.TYPE, ElementType.ANNOTATION_TYPE, ElementType.FIELD, ElementType.PARAMETER, ElementType.TYPE_USE, ElementType.TYPE_PARAMETER))
-case class nldbField(fieldName:Option[String]=None) extends nldbAnnotation
-@Target(Array(ElementType.TYPE, ElementType.ANNOTATION_TYPE, ElementType.FIELD, ElementType.PARAMETER, ElementType.TYPE_USE, ElementType.TYPE_PARAMETER))
-case class nldbTable(tableName:Option[String]=None) extends nldbAnnotation
+abstract class nldbAnnotation() extends scala.annotation.StaticAnnotation with AnnotationInterface[String]
 
-//@Target(Array(TYPE))
-//@Retention(RetentionPolicy.RUNTIME)
-//trait nldbTrait
-
+@Retention(RetentionPolicy.RUNTIME)
 @Target(Array(ElementType.TYPE, ElementType.ANNOTATION_TYPE, ElementType.FIELD, ElementType.PARAMETER, ElementType.TYPE_USE, ElementType.TYPE_PARAMETER))
-@nldbTable(tableName = Some("polls")) case class Annotated_l(
+case class nldbField(fieldName:Option[String]=None) extends nldbAnnotation{
+  override def getValue: Option[String] = fieldName
+}
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target(Array(ElementType.TYPE, ElementType.ANNOTATION_TYPE, ElementType.FIELD, ElementType.PARAMETER, ElementType.TYPE_USE, ElementType.TYPE_PARAMETER))
+case class nldbTable(tableName:Option[String]=Some("defaultTable")) extends nldbAnnotation{
+  override def getValue: Option[String] = tableName
+}
+
+@nldbTable(tableName = Some("polls"))
+case class Annotated_l(
                         @nldbField field1: Integer,
                         @nldbField field2: String,
                         field3: Boolean,
@@ -27,7 +34,7 @@ case class nldbTable(tableName:Option[String]=None) extends nldbAnnotation
 
 object GetAnnot{
   val nldbTypeSymbol: Symbol = typeOf[nldbField].typeSymbol
-  val nldbTableTypeSymbol = typeOf[nldbTable].typeSymbol
+  val nldbTableTypeSymbol: Symbol = typeOf[nldbTable].typeSymbol
   val objAnnotated: Annotated_l = Annotated_l(field1=12, field2="name2", field3 = true, field4 = 3.4)
   def fieldName2ValMap[T](annotatedObj: T): Map[String, AnyRef] = {
     annotatedObj.getClass.getDeclaredFields.map{
@@ -40,66 +47,32 @@ object GetAnnot{
   }
   def getTypeTag[T: TypeTag](obj: T): TypeTag[T] = typeTag[T]
   @throws(classOf[Exception])
-  def create[T:TypeTag](annotatedObj:T): String = {
-
-    val objType: universe.Type = typeOf[T];
-    val objTypeSymbol: universe.Symbol = objType.typeSymbol
-    val nldbTableName: universe.Symbol#NameType = getTypeTag(nldbTable).tpe.typeSymbol.name
-    val annotation: universe.Annotation = objTypeSymbol.annotations.filter(_.tree.tpe.typeSymbol.name == nldbTableName).head
-
-    val annotationProperties = getAnnotationProperties(annotation)
-    println(annotationProperties.toString())
-
-    val strList = annotation.toString.split('"')
-    if (strList.size != 3) throw new Exception(s"Expected $nldbTableName value not found for ${objTypeSymbol.toString}")
+  def getInsertQuery[T:TypeTag](annotatedObj:T): String = {
+    val objTypeSymbol: Symbol = typeOf[T].typeSymbol
     val sb: StringBuilder = new StringBuilder(1000, "INSERT INTO nldb.")
+    val tableNameStr = objTypeSymbol.annotations.find(a => a.tree.tpe == typeOf[nldbTable]).get.tree.children.tail.find(_.tpe.typeSymbol== typeOf[Some[String]].typeSymbol).get.children.flatMap(_.productIterator).last match {
+      case Constant(s)=>s.toString
+    }
     val fieldNameList = objTypeSymbol.asClass.primaryConstructor.typeSignature.paramLists.flatten.filter(f=> f.annotations.exists(_.tree.tpe.typeSymbol == typeOf[nldbField].typeSymbol)).map(_.name.toString)
-    sb.append(strList(1)).append(fieldNameList.mkString(" (", ",", ")"))
+    sb.append(tableNameStr).append(fieldNameList.mkString(" (", ",", ")"))
 
     val valMap = fieldName2ValMap(annotatedObj)
     val valList = fieldNameList.map(fieldName=>valMap.getOrElse(fieldName, "NULL"))
     sb.append(valList.mkString(" VALUES (", ",", ")")).toString
   }
-  def getAnnotationProperties(annotation: Annotation) = {
-    annotation.tree.children(1).children.head
-      .foreach(a => {
-        val x = getTypeTag(a)
-        println(x, x.tpe.typeSymbol, x.tpe.termSymbol, x.tpe.resultType)})
-    val returnValue = annotation.tree.children.head
-      .filter(f = a => a.isInstanceOf[AssignOrNamedArg])
-      .map(_.asInstanceOf[AssignOrNamedArg])
-      .map(ap => (ap.lhs, ap.rhs))
-    returnValue
-  }
-
   def listProperties[T: TypeTag]: List[Annotation] = {
     typeOf[T].typeSymbol.asClass
       .primaryConstructor
       .typeSignature
       .paramLists.flatten.flatMap(_.annotations)
   }
-
-/*
-  val annotatedClassSymbol: ClassSymbol = typeOf[Annotated_l].typeSymbol.asClass
-  val annotatedAnnotations: Seq[Annotation] = annotatedClassSymbol.annotations
-  val annotatedAnnotationType: Type = typeOf[nldbField]
-  annotatedAnnotations.find(a => a.tree.tpe == annotatedAnnotationType)
-  def annotationTypeName(annot: Annotation): String = annot.tree.tpe.typeSymbol.name.toString
-
-  val objSymbol: Symbol = typeOf[Annotated_l].typeSymbol
-  val annotatedProps: Iterable[Symbol] = objSymbol.info.decls.filter(_.annotations.nonEmpty)
-  val mainCtor: universe.Symbol = objSymbol.info.decls.find(d => d.isMethod && d.asMethod.isPrimaryConstructor).get
-  val params: List[universe.Symbol] = mainCtor.typeSignature.paramLists.head
-  val annotatedParams: List[universe.Symbol] = params.filter(p => p.annotations.exists(_.tree.tpe == annotatedAnnotationType))
-  val annotatedParamFieldList: List[String] = params.map(_.name.toString)
-*/
 }
 
 class resultSet2JsonTest extends FlatSpec with Matchers {
-  import com.newlibertie.pollster.database.GetAnnot.{create, objAnnotated}
+  import com.newlibertie.pollster.database.GetAnnot.{getInsertQuery, objAnnotated}
   "resultSetPrettyPrint" should "have string" in {
-    val retVal = create(objAnnotated)
-    println(retVal.toString())
+    val retVal = getInsertQuery(objAnnotated)
+    println(retVal)
   }
 }
 /*
