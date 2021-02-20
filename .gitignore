@@ -87,3 +87,10 @@ project/plugins/project/
 
 
 .gradle/
+
+
+# temp files
+
+*.bak
+*.backup
+*.swp
